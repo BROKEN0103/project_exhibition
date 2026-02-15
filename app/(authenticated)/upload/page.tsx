@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Clock,
   Shield,
+  Lock,
 } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { useAppStore, type UserRole } from "@/stores/app-store"
@@ -42,6 +43,62 @@ export default function UploadPage() {
   const [downloadAllowed, setDownloadAllowed] = useState(true)
   const [expiryDays, setExpiryDays] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const workspaces = useAppStore((s) => s.workspaces)
+  const folders = useAppStore((s) => s.folders)
+  const setWorkspaces = useAppStore((s) => s.setWorkspaces)
+  const setFolders = useAppStore((s) => s.setFolders)
+
+  const [workspaceId, setWorkspaceId] = useState("")
+  const [folderId, setFolderId] = useState("")
+
+  React.useEffect(() => {
+    if (!user) return
+    const fetchSelectData = async () => {
+      try {
+        const wsRes = await fetch("http://localhost:5000/api/workspaces", {
+          headers: { "Authorization": `Bearer ${user.token}` }
+        })
+        const wsData = await wsRes.json()
+        setWorkspaces(wsData.map((w: any) => ({
+          id: w._id,
+          name: w.name,
+          description: w.description,
+          owner: w.owner,
+          members: w.members
+        })))
+
+        if (wsData.length > 0) {
+          setWorkspaceId(wsData[0]._id)
+        }
+      } catch (err) {
+        console.error("Fetch workspaces failed", err)
+      }
+    }
+    fetchSelectData()
+  }, [user, setWorkspaces])
+
+  React.useEffect(() => {
+    if (!user || !workspaceId) return
+    const fetchFolders = async () => {
+      try {
+        const fRes = await fetch(`http://localhost:5000/api/folders?workspaceId=${workspaceId}`, {
+          headers: { "Authorization": `Bearer ${user.token}` }
+        })
+        const fData = await fRes.json()
+        setFolders(fData.map((f: any) => ({
+          id: f._id,
+          name: f.name,
+          workspace: f.workspace,
+          parent: f.parent,
+          path: f.path
+        })))
+      } catch (err) {
+        console.error("Fetch folders failed", err)
+      }
+    }
+    fetchFolders()
+  }, [user, workspaceId, setFolders])
 
   const canUpload = user?.role === "admin" || user?.role === "editor"
 
@@ -76,19 +133,47 @@ export default function UploadPage() {
     [title]
   )
 
+  const [isEncrypted, setIsEncrypted] = useState(false)
+  const [encrypting, setEncrypting] = useState(false)
+
   const handleUpload = useCallback(async () => {
     if (!user || pendingFiles.length === 0) return
+    if (!workspaceId) {
+      setError("Please select a workspace")
+      return
+    }
     setUploading(true)
-
-    // Create FormData
-    const formData = new FormData()
-    formData.append("file", pendingFiles[0].file) // We need the actual File object
-    formData.append("title", title || pendingFiles[0].name)
-    formData.append("description", "Uploaded via web interface")
+    setError(null)
 
     try {
-      console.log(`[Frontend] Uploading to http://localhost:5000/api/models`);
-      console.log(`[Frontend] File name: ${pendingFiles[0].name}, size: ${pendingFiles[0].size}`);
+      let fileToUpload = pendingFiles[0].file
+      let encryptedKey = ""
+      let iv = ""
+
+      if (isEncrypted) {
+        setEncrypting(true)
+        const { generateKey, exportKey, encryptFile } = await import("@/lib/encryption")
+        const key = await generateKey()
+        const result = await encryptFile(fileToUpload, key)
+
+        encryptedKey = await exportKey(key)
+        iv = result.iv
+
+        fileToUpload = new File([result.encryptedContent], pendingFiles[0].name, {
+          type: "application/octet-stream"
+        })
+        setEncrypting(false)
+      }
+
+      const formData = new FormData()
+      formData.append("file", fileToUpload)
+      formData.append("title", title || pendingFiles[0].name)
+      formData.append("description", "Uploaded via web interface")
+      formData.append("workspaceId", workspaceId)
+      if (folderId) formData.append("folderId", folderId)
+      formData.append("isEncrypted", isEncrypted.toString())
+      formData.append("encryptedKey", encryptedKey)
+      formData.append("iv", iv)
 
       const res = await fetch("http://127.0.0.1:5000/api/models", {
         method: "POST",
@@ -98,51 +183,32 @@ export default function UploadPage() {
         body: formData
       })
 
-      console.log(`[Frontend] Response status: ${res.status}`);
-
       if (!res.ok) throw new Error("Upload failed")
 
       const newModel = await res.json()
-
-      const newDoc = {
+      addDocument({
         id: newModel._id,
         title: newModel.title,
-        type: "document" as const, // naive type
+        type: "document",
         mimeType: pendingFiles[0].type,
         size: pendingFiles[0].size,
         uploadedAt: newModel.createdAt,
-        expiresAt: expiryDays
-          ? new Date(Date.now() + expiryDays * 86400000).toISOString()
-          : null,
+        expiresAt: null,
         uploadedBy: user.name,
         accessRoles: selectedRoles,
-        downloadAllowed,
-        metadata: { fileUrl: `http://localhost:5000/uploads/${newModel.fileUrl}` }
-      }
-
-      addDocument(newDoc)
-      // Activity is added by backend, but we can add to local store for immediate feedback if we want.
-      // But better to re-fetch logs or just let backend handle it. 
-      // The store's addAccessLog updates the UI immediately.
-      addAccessLog({
-        id: `log-${Date.now()}`,
-        userId: user.id,
-        userName: user.name,
-        documentId: newDoc.id,
-        documentTitle: newDoc.title,
-        action: "upload",
-        timestamp: new Date().toISOString(),
-        granted: true,
+        downloadAllowed: true,
+        metadata: { isEncrypted, version: newModel.version, workspaceId, folderId }
       })
 
-      setUploading(false)
       setUploaded(true)
     } catch (err: any) {
       console.error("[Frontend] Upload error:", err)
-      setUploading(false)
       setError(`Upload failed: ${err.message || "Network error"}`)
+    } finally {
+      setUploading(false)
+      setEncrypting(false)
     }
-  }, [user, pendingFiles, title, selectedRoles, downloadAllowed, expiryDays, addDocument, addAccessLog])
+  }, [user, pendingFiles, title, isEncrypted, selectedRoles, workspaceId, folderId, addDocument])
 
   const reset = useCallback(() => {
     setPendingFiles([])
@@ -266,10 +332,44 @@ export default function UploadPage() {
               {/* Settings */}
               {pendingFiles.length > 0 && (
                 <GlassPanel className="flex flex-col gap-4 p-5">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label htmlFor="workspace-select" className="mb-1.5 block text-xs text-muted-foreground">
+                        Project Workspace
+                      </label>
+                      <select
+                        id="workspace-select"
+                        value={workspaceId}
+                        onChange={(e) => setWorkspaceId(e.target.value)}
+                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      >
+                        {workspaces.map((ws) => (
+                          <option key={ws.id} value={ws.id}>{ws.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label htmlFor="folder-select" className="mb-1.5 block text-xs text-muted-foreground">
+                        Folder (Optional)
+                      </label>
+                      <select
+                        id="folder-select"
+                        value={folderId}
+                        onChange={(e) => setFolderId(e.target.value)}
+                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      >
+                        <option value="">Root Folder</option>
+                        {folders.map((f) => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Title */}
                   <div>
                     <label htmlFor="doc-title" className="mb-1.5 block text-xs text-muted-foreground">
-                      Title
+                      Document Title
                     </label>
                     <input
                       id="doc-title"
@@ -277,7 +377,7 @@ export default function UploadPage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                      placeholder="Document title"
+                      placeholder="Enter document title"
                     />
                   </div>
 
@@ -308,8 +408,23 @@ export default function UploadPage() {
                     </div>
                   </div>
 
-                  {/* Download & Expiry */}
+                  {/* Encryption & Download */}
                   <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="mb-1.5 block text-xs text-muted-foreground">
+                        <Lock className="mr-1 inline h-3 w-3" />
+                        E2EE Encryption
+                      </label>
+                      <button
+                        onClick={() => setIsEncrypted(!isEncrypted)}
+                        className={`w-full rounded-lg px-3 py-2 text-xs transition-colors ${isEncrypted
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "bg-secondary text-muted-foreground"
+                          }`}
+                      >
+                        {isEncrypted ? "Enabled" : "Disabled"}
+                      </button>
+                    </div>
                     <div className="flex-1">
                       <label className="mb-1.5 block text-xs text-muted-foreground">
                         <Shield className="mr-1 inline h-3 w-3" />
@@ -325,25 +440,27 @@ export default function UploadPage() {
                         {downloadAllowed ? "Allowed" : "Restricted"}
                       </button>
                     </div>
-                    <div className="flex-1">
-                      <label className="mb-1.5 block text-xs text-muted-foreground">
-                        <Clock className="mr-1 inline h-3 w-3" />
-                        Expiry
-                      </label>
-                      <select
-                        value={expiryDays ?? ""}
-                        onChange={(e) =>
-                          setExpiryDays(e.target.value ? Number(e.target.value) : null)
-                        }
-                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-xs text-foreground focus:border-primary/30 focus:outline-none"
-                      >
-                        <option value="">No expiry</option>
-                        <option value="7">7 days</option>
-                        <option value="30">30 days</option>
-                        <option value="90">90 days</option>
-                        <option value="365">1 year</option>
-                      </select>
-                    </div>
+                  </div>
+
+                  {/* Expiry */}
+                  <div>
+                    <label className="mb-1.5 block text-xs text-muted-foreground">
+                      <Clock className="mr-1 inline h-3 w-3" />
+                      Automatic Expiry
+                    </label>
+                    <select
+                      value={expiryDays ?? ""}
+                      onChange={(e) =>
+                        setExpiryDays(e.target.value ? Number(e.target.value) : null)
+                      }
+                      className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-xs text-foreground focus:border-primary/30 focus:outline-none"
+                    >
+                      <option value="">No expiry</option>
+                      <option value="7">7 days</option>
+                      <option value="30">30 days</option>
+                      <option value="90">90 days</option>
+                      <option value="365">1 year</option>
+                    </select>
                   </div>
 
                   {/* Error Message */}
@@ -384,6 +501,6 @@ export default function UploadPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </div >
   )
 }

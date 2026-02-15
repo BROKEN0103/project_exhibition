@@ -4,6 +4,8 @@ import { SessionHydrator } from "@/components/auth/session-hydrator"
 import { FloatingDock } from "@/components/dashboard/floating-dock"
 import { DataInitializer } from "@/components/auth/data-initializer"
 
+import { Sidebar } from "@/components/dashboard/sidebar"
+
 export default async function AuthenticatedLayout({
   children,
 }: {
@@ -19,16 +21,23 @@ export default async function AuthenticatedLayout({
       email: session.email,
       name: session.name,
       role: session.role,
-      token: session.token,
+      token: session.token as string,
     }
     : null
 
   return (
     <SessionHydrator user={user}>
       <DataInitializer />
-      <div className="relative h-screen pb-20">
-        {children}
-        <FloatingDock />
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 relative flex flex-col h-full overflow-hidden">
+          <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
+            {children}
+          </main>
+          <div className="md:hidden">
+            <FloatingDock />
+          </div>
+        </div>
       </div>
     </SessionHydrator>
   )

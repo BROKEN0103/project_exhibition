@@ -16,13 +16,13 @@ export interface AuthResult {
   success: boolean
   error?: string
   redirect?: string
+  requires2FA?: boolean
+  email?: string
 }
 
 export async function loginAction(formData: FormData): Promise<AuthResult> {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
-
-  console.log(`[v0] loginAction: email=${email}, passwordLen=${password?.length}`)
 
   if (!email || !password) {
     return { success: false, error: "Email and password are required" }
@@ -37,7 +37,18 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
 
     const data = await res.json();
 
+    if (res.status === 202) {
+      const cookieStore = await cookies()
+      cookieStore.set("auth_pending", data.tempToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 600
+      })
+      return { success: true, requires2FA: true, email }
+    }
+
     if (!res.ok) {
+      if (res.status === 403) return { success: false, error: "Account locked" }
       return { success: false, error: data.message || "Invalid credentials" }
     }
 
@@ -46,11 +57,42 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
     const cookieStore = await cookies()
     cookieStore.set(getCookieName(), token, getCookieOptions())
 
-    console.log(`[v0] loginAction: cookie set, returning success`)
     return { success: true, redirect: "/dashboard" }
   } catch (err) {
     console.error("Login failed:", err);
     return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
+  const otp = formData.get("otp") as string;
+
+  const cookieStore = await cookies()
+  const tempToken = cookieStore.get("auth_pending")?.value
+
+  if (!otp) return { success: false, error: "Code required" };
+  if (!tempToken) return { success: false, error: "Session expired" };
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/verify-2fa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tempToken, otp }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data.message || "Invalid code" };
+
+    const { token } = data;
+
+    // Clear pending cookie
+    cookieStore.delete("auth_pending")
+    // Set real cookie
+    cookieStore.set(getCookieName(), token, getCookieOptions())
+
+    return { success: true, redirect: "/dashboard" };
+  } catch (err) {
+    return { success: false, error: "Verification failed" };
   }
 }
 

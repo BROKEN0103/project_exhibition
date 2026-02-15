@@ -3,7 +3,7 @@ const Activity = require("../models/Activity");
 
 exports.getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password");
+        const user = await User.findById(req.user.userId).select("-password");
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (error) {
@@ -15,7 +15,7 @@ exports.updateProfile = async (req, res) => {
     try {
         const { name, email } = req.body;
         const user = await User.findByIdAndUpdate(
-            req.user.id,
+            req.user.userId,
             { name, email },
             { new: true }
         ).select("-password");
@@ -27,7 +27,7 @@ exports.updateProfile = async (req, res) => {
 
 exports.getActivities = async (req, res) => {
     try {
-        const activities = await Activity.find({ user: req.user.id })
+        const activities = await Activity.find({ user: req.user.userId })
             .populate("user", "name email")
             .populate("document", "title")
             .sort({ createdAt: -1 });

@@ -10,6 +10,8 @@ import {
   Shield,
   HardDrive,
   AlertTriangle,
+  Terminal,
+  Globe,
 } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { useAppStore } from "@/stores/app-store"
@@ -98,6 +100,8 @@ export default function AdminPage() {
           initial="hidden"
           animate="show"
         >
+
+
           {/* System Stats */}
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
@@ -121,32 +125,39 @@ export default function AdminPage() {
           </div>
 
           {/* Users */}
-          <motion.div variants={itemVariants} className="mb-4">
-            <GlassPanel className="p-5">
-              <h2 className="mb-4 flex items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
-                <Users className="h-3.5 w-3.5" />
-                User Accounts
-              </h2>
-              <div className="flex flex-col gap-2">
-                {demoUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-xs text-foreground">
-                      {u.name.charAt(0)}
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="grid grid-cols-1 gap-6">
+              <GlassPanel className="p-5">
+                <h2 className="mb-4 flex items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
+                  <Users className="h-3.5 w-3.5" />
+                  User Accounts
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {demoUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20">
+                        {u.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-foreground font-medium">{u.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{u.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                        <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[9px] text-primary uppercase font-black tracking-tighter">
+                          {u.role}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground">{u.name}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
-                    <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                      {u.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </GlassPanel>
+                  ))}
+                </div>
+              </GlassPanel>
+
+
+            </div>
           </motion.div>
 
           {/* Content Management */}

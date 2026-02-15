@@ -1,0 +1,6 @@
+@echo off
+echo Killing process on port 5000...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":5000"') do taskkill /f /pid %%a
+echo Starting backend...
+cd backend
+npm run dev

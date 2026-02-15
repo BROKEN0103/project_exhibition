@@ -1,5 +1,5 @@
 const path = require("path");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
@@ -10,6 +10,7 @@ connectDB();
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  // Trigger restart 2
   next();
 });
 
@@ -23,12 +24,21 @@ app.use(express.json());
 
 // Serve static files from uploads directory - serve WITHOUT the 'uploads' prefix in the filesystem path
 // so that a file at backend/uploads/file.ext is served at /uploads/file.ext
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// SECURITY: Protected by auth middleware (token required in header or query param)
+app.use("/uploads", require("./middleware/auth.middleware"), express.static(path.join(__dirname, "../uploads")));
 
 // Routes
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/models", require("./routes/model.routes"));
+app.use("/api/workspaces", require("./routes/workspace.routes"));
+app.use("/api/folders", require("./routes/folder.routes"));
+app.use("/api/shares", require("./routes/share.routes"));
+app.use("/api/analytics", require("./routes/analytics.routes"));
+app.use("/api/activities", require("./routes/activity.routes"));
+app.use("/api/notifications", require("./routes/notification.routes"));
+app.use("/api/search", require("./routes/search.routes"));
+app.use("/api/file-management", require("./routes/fileManagement.routes"));
 
 
 app.get("/", (req, res) => {

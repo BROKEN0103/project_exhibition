@@ -4,9 +4,9 @@ import React, { useState, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, ArrowRight, Shield } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
-import { loginAction } from "@/app/auth/actions"
+import { loginAction, verify2FAAction } from "@/app/auth/actions"
 
 const demoAccounts = [
   { email: "admin@vault.io", role: "admin" },
@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState("")
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -32,12 +34,105 @@ export default function LoginPage() {
 
     startTransition(async () => {
       const result = await loginAction(formData)
+      if (result.success) {
+        if (result.requires2FA) {
+          setRequires2FA(true)
+        } else if (result.redirect) {
+          router.push(result.redirect)
+        }
+      } else if (result.error) {
+        setError(result.error)
+      }
+    })
+  }
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+
+    const formData = new FormData()
+    formData.set("otp", otp)
+
+    startTransition(async () => {
+      const result = await verify2FAAction(formData)
       if (result.success && result.redirect) {
         router.push(result.redirect)
       } else if (result.error) {
         setError(result.error)
       }
     })
+  }
+
+  if (requires2FA) {
+    return (
+      <div className="flex h-screen items-center justify-center px-4">
+        <GlassPanel
+          variant="strong"
+          glow
+          className="w-full max-w-sm p-8"
+        >
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/5">
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
+            <h1 className="text-sm tracking-widest text-muted-foreground uppercase">
+              Two-Factor Authentication
+            </h1>
+            <p className="text-center text-xs text-muted-foreground">
+              Enter the code sent to your email.
+            </p>
+          </div>
+
+          <form onSubmit={handleVerify} className="flex flex-col gap-5">
+            <div className="group relative">
+              <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <input
+                type="text"
+                name="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter OTP Code"
+                required
+                maxLength={6}
+                className="w-full rounded-lg border border-border/50 bg-background/50 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                aria-label="OTP Code"
+              />
+            </div>
+
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-center text-xs text-destructive"
+                >
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <motion.button
+              type="submit"
+              disabled={isPending}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 py-2.5 text-sm text-primary transition-all hover:bg-primary/15 disabled:opacity-50"
+            >
+              {isPending ? "Verifying..." : "Verify Code"}
+            </motion.button>
+
+            <button
+              type="button"
+              onClick={() => setRequires2FA(false)}
+              className="text-xs text-muted-foreground hover:text-foreground text-center"
+            >
+              Back to Login
+            </button>
+          </form>
+        </GlassPanel>
+      </div>
+    )
   }
 
   return (

@@ -20,7 +20,7 @@ function Particles({ count = 800 }: { count?: number }) {
     return { positions, sizes }
   }, [count])
 
-  useFrame((state) => {
+  useFrame((state: any) => {
     const time = state.clock.getElapsedTime()
     if (mesh.current) {
       mesh.current.rotation.y = time * 0.02

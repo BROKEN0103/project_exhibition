@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
     ];
 
     return (
-        <div className="h-full overflow-y-auto px-4 pb-20 pt-8 md:px-8">
+        <div className="min-h-screen px-4 pb-20 pt-8 md:px-8">
             <div className="mx-auto max-w-7xl">
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}

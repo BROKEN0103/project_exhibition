@@ -79,7 +79,7 @@ export default function AdminPage() {
   const deniedCount = accessLogs.filter((l) => !l.granted).length
 
   return (
-    <div className="h-full overflow-y-auto px-4 pt-8 md:px-8">
+    <div className="px-4 pt-8 md:px-8">
       <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 10 }}

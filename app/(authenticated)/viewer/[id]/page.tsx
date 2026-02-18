@@ -107,7 +107,7 @@ export default function ViewerPage({
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 pt-8 md:px-8">
+    <div className="min-h-screen px-4 pt-8 md:px-8">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <motion.div

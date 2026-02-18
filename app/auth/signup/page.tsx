@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Check, X } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
+import { AuthBackground } from "@/components/premium/AuthBackground"
 import { signupAction } from "@/app/auth/actions"
 
 function usePasswordStrength(password: string) {
@@ -65,7 +66,8 @@ export default function SignupPage() {
           : "bg-primary"
 
   return (
-    <div className="flex h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4 relative overflow-hidden">
+      <AuthBackground />
       <GlassPanel
         variant="strong"
         glow
@@ -154,9 +156,8 @@ export default function SignupPage() {
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className={`h-1 flex-1 rounded-full transition-colors ${
-                        i < score ? strengthColor : "bg-border/30"
-                      }`}
+                      className={`h-1 flex-1 rounded-full transition-colors ${i < score ? strengthColor : "bg-border/30"
+                        }`}
                     />
                   ))}
                 </div>

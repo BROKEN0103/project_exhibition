@@ -374,13 +374,15 @@ export default function LibraryPage() {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const wsData = await wsRes.json()
-      setWorkspaces(wsData.map((w: any) => ({
-        id: w._id,
-        name: w.name,
-        description: w.description,
-        owner: w.owner,
-        members: w.members
-      })))
+      if (Array.isArray(wsData)) {
+        setWorkspaces(wsData.map((w: any) => ({
+          id: w._id,
+          name: w.name,
+          description: w.description,
+          owner: w.owner,
+          members: w.members
+        })))
+      }
 
       setIsInviting(false)
       setInviteEmail("")
@@ -409,13 +411,15 @@ export default function LibraryPage() {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const wsData = await wsRes.json()
-      setWorkspaces(wsData.map((w: any) => ({
-        id: w._id,
-        name: w.name,
-        description: w.description,
-        owner: w.owner,
-        members: w.members
-      })))
+      if (Array.isArray(wsData)) {
+        setWorkspaces(wsData.map((w: any) => ({
+          id: w._id,
+          name: w.name,
+          description: w.description,
+          owner: w.owner,
+          members: w.members
+        })))
+      }
 
       setIsCreatingWorkspace(false)
       setSelectedWorkspace(newWs._id)
@@ -468,13 +472,15 @@ export default function LibraryPage() {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const fData = await folderRes.json()
-      setFolders(fData.map((f: any) => ({
-        id: f._id,
-        name: f.name,
-        workspace: f.workspace,
-        parent: f.parent,
-        path: f.path
-      })))
+      if (Array.isArray(fData)) {
+        setFolders(fData.map((f: any) => ({
+          id: f._id,
+          name: f.name,
+          workspace: f.workspace,
+          parent: f.parent,
+          path: f.path
+        })))
+      }
       setIsCreatingFolder(false)
     } catch (err) {
       console.error("Folder creation failed", err)
@@ -547,42 +553,48 @@ export default function LibraryPage() {
         ])
 
         const wsData = await wsRes.json()
-        const fData = await (folderRes as Response).json()
+        const fData_raw = await (folderRes as Response).json()
         const docData = await docRes.json()
 
-        setWorkspaces(wsData.map((w: any) => ({
-          id: w._id,
-          name: w.name,
-          description: w.description,
-          owner: w.owner,
-          members: w.members
-        })))
+        if (Array.isArray(wsData)) {
+          setWorkspaces(wsData.map((w: any) => ({
+            id: w._id,
+            name: w.name,
+            description: w.description,
+            owner: w.owner,
+            members: w.members
+          })))
+        }
 
-        setFolders(fData.map((f: any) => ({
-          id: f._id,
-          name: f.name,
-          workspace: f.workspace,
-          parent: f.parent,
-          path: f.path
-        })))
+        if (Array.isArray(fData_raw)) {
+          setFolders(fData_raw.map((f: any) => ({
+            id: f._id,
+            name: f.name,
+            workspace: f.workspace,
+            parent: f.parent,
+            path: f.path
+          })))
+        }
 
-        setDocuments(docData.map((d: any) => ({
-          id: d._id,
-          title: d.title,
-          type: "document",
-          mimeType: d.mimeType,
-          size: d.size,
-          uploadedAt: d.createdAt,
-          expiresAt: null,
-          uploadedBy: d.uploadedBy?.name || 'Unknown',
-          accessRoles: ["admin", "editor", "viewer"], // Simplified
-          downloadAllowed: true,
-          metadata: {
-            isEncrypted: d.isEncrypted,
-            version: d.version,
-            fileUrl: `http://localhost:5000/uploads/${d.fileUrl}?token=${user.token}`
-          }
-        })))
+        if (Array.isArray(docData)) {
+          setDocuments(docData.map((d: any) => ({
+            id: d._id,
+            title: d.title,
+            type: "document",
+            mimeType: d.mimeType,
+            size: d.size,
+            uploadedAt: d.createdAt,
+            expiresAt: null,
+            uploadedBy: d.uploadedBy?.name || 'Unknown',
+            accessRoles: ["admin", "editor", "viewer"], // Simplified
+            downloadAllowed: true,
+            metadata: {
+              isEncrypted: d.isEncrypted,
+              version: d.version,
+              fileUrl: `http://localhost:5000/uploads/${d.fileUrl}?token=${user.token}`
+            }
+          })))
+        }
       } catch (err) {
         console.error("Fetch failed", err)
       }
@@ -599,7 +611,7 @@ export default function LibraryPage() {
   }, [documents, search, typeFilter])
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 pt-8 md:px-8 relative">
+    <div className="flex-1 px-4 pt-8 md:px-8 relative">
       <AnimatePresence>
         {isDecryptingWorkspace && (
           <motion.div

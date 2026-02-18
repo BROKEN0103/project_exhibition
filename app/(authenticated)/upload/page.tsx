@@ -60,16 +60,18 @@ export default function UploadPage() {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const wsData = await wsRes.json()
-        setWorkspaces(wsData.map((w: any) => ({
-          id: w._id,
-          name: w.name,
-          description: w.description,
-          owner: w.owner,
-          members: w.members
-        })))
+        if (Array.isArray(wsData)) {
+          setWorkspaces(wsData.map((w: any) => ({
+            id: w._id,
+            name: w.name,
+            description: w.description,
+            owner: w.owner,
+            members: w.members
+          })))
 
-        if (wsData.length > 0) {
-          setWorkspaceId(wsData[0]._id)
+          if (wsData.length > 0) {
+            setWorkspaceId(wsData[0]._id)
+          }
         }
       } catch (err) {
         console.error("Fetch workspaces failed", err)
@@ -86,13 +88,15 @@ export default function UploadPage() {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const fData = await fRes.json()
-        setFolders(fData.map((f: any) => ({
-          id: f._id,
-          name: f.name,
-          workspace: f.workspace,
-          parent: f.parent,
-          path: f.path
-        })))
+        if (Array.isArray(fData)) {
+          setFolders(fData.map((f: any) => ({
+            id: f._id,
+            name: f.name,
+            workspace: f.workspace,
+            parent: f.parent,
+            path: f.path
+          })))
+        }
       } catch (err) {
         console.error("Fetch folders failed", err)
       }
@@ -235,7 +239,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 pt-8 md:px-8">
+    <div className="min-h-screen px-4 pt-8 md:px-8">
       <div className="mx-auto max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 10 }}

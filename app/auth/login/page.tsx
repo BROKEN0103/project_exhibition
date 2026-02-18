@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Shield } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
+import { AuthBackground } from "@/components/premium/AuthBackground"
 import { loginAction, verify2FAAction } from "@/app/auth/actions"
 
 const demoAccounts = [
@@ -136,7 +137,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4 relative overflow-hidden">
+      <AuthBackground />
       <GlassPanel
         variant="strong"
         glow

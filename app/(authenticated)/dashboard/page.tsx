@@ -1,24 +1,26 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
-import { FileText, Video, ImageIcon, Clock, Shield, HardDrive, Upload, TrendingUp, Activity, Zap, Eye, Download, AlertCircle } from "lucide-react"
+import { motion, AnimatePresence, Variants } from "framer-motion"
+import { FileText, Video, ImageIcon, Clock, Shield, HardDrive, Upload, Zap, AlertCircle, Activity } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { useAppStore } from "@/stores/app-store"
-import { getStorageStats } from "@/lib/seed-data"
 import Link from "next/link"
 import { useState, useEffect, useMemo } from "react"
+import { TiltCard } from "@/components/premium/TiltCard"
+import { SecurityTracePanel } from "@/components/premium/SecurityTracePanel"
+import { NetworkTopology3D } from "@/components/premium/NetworkTopology3D"
 
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.3 },
   },
 }
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
 }
 
 function formatBytes(bytes: number) {
@@ -27,20 +29,9 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1_000).toFixed(0)} KB`
 }
 
-function getTimeAgo(date: string | Date) {
-  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000)
-  if (seconds < 60) return "Just now"
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
 export default function DashboardPage() {
   const user = useAppStore((s) => s.user)
   const documents = useAppStore((s) => s.documents)
-  const accessLogs = useAppStore((s) => s.accessLogs)
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -52,7 +43,6 @@ export default function DashboardPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Dynamic Stats
   const stats = useMemo(() => {
     const docCount = documents.filter(d => d.type === 'document').length
     const videoCount = documents.filter(d => d.type === 'video').length
@@ -70,212 +60,165 @@ export default function DashboardPage() {
     }
   }, [documents])
 
-
-
-  const recentLogs = accessLogs.slice(0, 6)
-  const recentDocs = documents.slice(0, 4)
+  const recentDocs = documents.slice(0, 5)
 
   const quickActions = [
-    { label: "Upload Content", href: "/upload", icon: Upload, color: "primary", description: "Add new files" },
-    { label: "Library", href: "/library", icon: FileText, color: "blue", description: "Browse vault" },
-    { label: "Activity", href: "/activity", icon: Activity, color: "emerald", description: "View logs" },
-    { label: "Access Control", href: "/access-control", icon: Shield, color: "amber", description: "Manage permissions" },
+    { label: "Upload Content", href: "/upload", icon: Upload, description: "Secure ingestion" },
+    { label: "Vault Explorer", href: "/library", icon: HardDrive, description: "Content management" },
+    { label: "Access Rights", href: "/access-control", icon: Shield, description: "Permission audit" },
   ]
 
   if (!mounted) return null
 
   return (
-    <div className="h-full overflow-y-auto px-4 pt-8 md:px-8 pb-20">
+    <div className="min-h-screen px-4 pt-10 md:px-10 pb-24 bg-black/40">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="mx-auto max-w-6xl"
+        className="mx-auto max-w-7xl"
       >
-        {/* Header with Live Time */}
-        <motion.div variants={itemVariants} className="mb-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground/90">
-                Welcome back, {user?.name}
-              </h1>
-              <div className="mt-1 text-sm text-muted-foreground flex items-center gap-2">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {user?.role === "admin" ? "Full system access" : `${user?.role} access level`}
-                </span>
-                <span className="text-border">•</span>
-                <span className="font-mono">{currentTime?.toLocaleTimeString()}</span>
-              </div>
+        {/* Immersive Header */}
+        <motion.div variants={itemVariants} className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-1 w-8 bg-blue-500 rounded-full" />
+              <span className="text-xs uppercase tracking-[0.3em] font-bold text-blue-500/80">Control Center</span>
             </div>
-            <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 px-4 py-2 hidden sm:block">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">System Status</p>
-              <p className="text-sm font-bold text-primary flex items-center gap-1.5 mt-0.5">
-                <Zap className="h-3.5 w-3.5" />
-                Operational
-              </p>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
+              Hello, <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{user?.name}</span>
+            </h1>
+            <p className="text-slate-400 text-sm max-w-md">
+              All systems nominal. Encryption keys rotated.
+              Spatial security monitoring is active.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Local Time</p>
+              <p className="text-xl font-mono text-white tracking-widest">{currentTime?.toLocaleTimeString()}</p>
+            </div>
+            <div className="h-12 w-[1px] bg-slate-800 hidden sm:block" />
+            <div className="flex items-center gap-3 rounded-2xl bg-slate-900/50 border border-slate-800 px-5 py-3">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+              <span className="text-sm font-bold text-slate-200">System Live</span>
             </div>
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {/* Dynamic Visualization Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          <motion.div variants={itemVariants} className="lg:col-span-2">
+            <NetworkTopology3D />
+          </motion.div>
+          <motion.div variants={itemVariants} className="h-full min-h-[400px]">
+            <SecurityTracePanel />
+          </motion.div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
-            { label: "Documents", value: stats.docCount, icon: FileText, color: "blue", trend: "+2%" },
-            { label: "Videos", value: stats.videoCount, icon: Video, color: "purple", trend: "+0%" },
-            { label: "Images", value: stats.imageCount, icon: ImageIcon, color: "emerald", trend: "+5%" },
-            { label: "Storage", value: formatBytes(stats.usedStorage), icon: HardDrive, color: "amber", trend: `${stats.usagePercent.toFixed(1)}%` },
+            { label: "Stored Docs", value: stats.docCount, icon: FileText, color: "text-blue-400" },
+            { label: "Coded Videos", value: stats.videoCount, icon: Video, color: "text-purple-400" },
+            { label: "Secure Images", value: stats.imageCount, icon: ImageIcon, color: "text-teal-400" },
+            { label: "Used Capacity", value: formatBytes(stats.usedStorage), icon: HardDrive, color: "text-amber-400" },
           ].map((stat) => (
             <motion.div key={stat.label} variants={itemVariants}>
-              <GlassPanel className="group relative overflow-hidden p-4 hover:border-primary/20 transition-all">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/5 border border-white/5">
-                    <stat.icon className="h-4 w-4 text-primary" />
+              <TiltCard className="h-full">
+                <GlassPanel glow className="p-6 h-full flex flex-col justify-between hover:bg-white/5 transition-colors group">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`h-10 w-10 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center transition-transform group-hover:scale-110`}>
+                      <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xl font-bold text-foreground truncate">{stat.value}</p>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+                  <div>
+                    <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</p>
                   </div>
-                </div>
-              </GlassPanel>
+                </GlassPanel>
+              </TiltCard>
             </motion.div>
           ))}
         </div>
 
-
-
-        {/* Quick Actions */}
-        <motion.div variants={itemVariants} className="mb-6">
-          <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            <Zap className="h-3.5 w-3.5" />
-            Quick Access
-          </h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {/* Main Interface Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+          {/* Quick Actions Column */}
+          <motion.div variants={itemVariants} className="xl:col-span-1 flex flex-col gap-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-4 w-4 text-blue-500" />
+              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-300">Quick Access</h2>
+            </div>
             {quickActions.map((action) => (
               <Link key={action.href} href={action.href}>
-                <GlassPanel className="group relative overflow-hidden p-4 transition-all hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 border border-white/5 group-hover:scale-110 transition-transform">
-                      <action.icon className="h-4 w-4 text-primary" />
+                <GlassPanel className="p-6 hover:translate-x-2 transition-transform cursor-pointer border-l-4 border-l-blue-600/50">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
+                      <action.icon className="h-5 w-5 text-blue-400" />
                     </div>
-                    <p className="text-sm font-bold text-foreground">{action.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                    <div>
+                      <p className="font-bold text-white">{action.label}</p>
+                      <p className="text-xs text-slate-500">{action.description}</p>
+                    </div>
                   </div>
                 </GlassPanel>
               </Link>
             ))}
-          </div>
-        </motion.div>
 
-        {/* Two column layout */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Recent Documents */}
-          <motion.div variants={itemVariants}>
-            <GlassPanel className="p-5">
-              <h2 className="mb-4 flex items-center justify-between text-xs tracking-widest text-muted-foreground uppercase">
-                <span className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5" />
-                  Recent Content
-                </span>
-                <Link href="/library" className="text-primary hover:underline text-[10px]">
-                  View All
-                </Link>
-              </h2>
-              <div className="flex flex-col gap-1">
-                <AnimatePresence mode="popLayout">
-                  {recentDocs.length === 0 ? (
-                    <p className="py-8 text-center text-xs text-muted-foreground italic">No content uploaded yet</p>
-                  ) : recentDocs.map((doc, i) => (
-                    <motion.div
-                      key={doc.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-primary/5"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 group-hover:border-primary/20 transition-all">
-                        {doc.type === "video" ? (
-                          <Video className="h-4 w-4 text-primary" />
-                        ) : doc.type === "image" ? (
-                          <ImageIcon className="h-4 w-4 text-primary" />
-                        ) : (
-                          <FileText className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">{doc.title}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span>{formatBytes(doc.size)}</span>
-                          {doc.expiresAt && (
-                            <>
-                              <span className="text-border">•</span>
-                              <span className="flex items-center gap-1 text-amber-500">
-                                <AlertCircle className="h-3 w-3" />
-                                Expires {new Date(doc.expiresAt).toLocaleDateString()}
-                              </span>
-                            </>
-                          )}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+            <GlassPanel className="mt-4 p-6 bg-gradient-to-br from-blue-600/20 to-transparent overflow-hidden relative">
+              <div className="relative z-10">
+                <h3 className="font-bold text-lg mb-2">Spatial Audit Log</h3>
+                <p className="text-xs text-slate-400 mb-4">You have 0 pending security notifications.</p>
+                <button className="text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">Review Report</button>
               </div>
+              <Shield className="absolute -bottom-6 -right-6 h-32 w-32 text-blue-500/10" />
             </GlassPanel>
           </motion.div>
 
-          {/* Activity Stream */}
-          <motion.div variants={itemVariants}>
-            <GlassPanel className="p-5">
-              <h2 className="mb-4 flex items-center justify-between text-xs tracking-widest text-muted-foreground uppercase">
-                <span className="flex items-center gap-2">
-                  <Activity className="h-3.5 w-3.5" />
-                  Live Activity Feed
-                </span>
-                <Link href="/activity" className="text-primary hover:underline text-[10px]">
-                  View All
-                </Link>
-              </h2>
-              <div className="flex flex-col gap-1">
+          {/* List Column */}
+          <motion.div variants={itemVariants} className="xl:col-span-2">
+            <GlassPanel className="h-full p-8 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-500" />
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-slate-300">Recent Content Integrity</h2>
+                </div>
+                <Link href="/library" className="text-xs text-blue-400 hover:text-blue-300 font-bold tracking-widest uppercase underline-offset-4 hover:underline">Full Vault</Link>
+              </div>
+
+              <div className="space-y-4">
                 <AnimatePresence mode="popLayout">
-                  {recentLogs.length === 0 ? (
-                    <p className="py-8 text-center text-xs text-muted-foreground italic">No system activity logged</p>
-                  ) : recentLogs.map((log, i) => (
+                  {recentDocs.length === 0 ? (
+                    <p className="py-20 text-center text-sm text-slate-500 font-mono">_no_active_records_found</p>
+                  ) : recentDocs.map((doc, i) => (
                     <motion.div
-                      key={log.id}
-                      initial={{ opacity: 0, x: 10 }}
+                      key={doc.id}
+                      initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors"
+                      transition={{ delay: i * 0.1 }}
+                      className="group flex items-center justify-between p-4 rounded-xl bg-slate-900/30 border border-slate-800/50 hover:bg-blue-600/5 hover:border-blue-500/30 transition-all cursor-pointer"
                     >
-                      <div className="mt-1">
-                        {log.action === "view" && <Eye className="h-3.5 w-3.5 text-blue-500" />}
-                        {log.action === "download" && <Download className="h-3.5 w-3.5 text-emerald-500" />}
-                        {log.action === "upload" && <Upload className="h-3.5 w-3.5 text-purple-500" />}
-                        {!["view", "download", "upload"].includes(log.action) && (
-                          <div
-                            className={`h-2 w-2 rounded-full ${log.granted ? "bg-emerald-500" : "bg-rose-500"
-                              }`}
-                          />
-                        )}
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="h-12 w-12 rounded-xl bg-black border border-slate-800 flex items-center justify-center group-hover:bg-blue-600/10 transition-colors">
+                          {doc.type === "video" ? <Video className="h-5 w-5 text-purple-400" /> : <FileText className="h-5 w-5 text-blue-400" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white truncate group-hover:text-blue-400 transition-colors">{doc.title}</p>
+                          <p className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-2">
+                            <span>{formatBytes(doc.size)}</span>
+                            <span>•</span>
+                            <span className="text-emerald-500">Secure</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] text-foreground">
-                          <span className="font-semibold">{log.userName}</span>{" "}
-                          <span className="text-muted-foreground">{log.action}</span>{" "}
-                          <span className="font-semibold truncate">"{log.documentTitle}"</span>
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2 font-mono">
-                          <span>{getTimeAgo(log.timestamp)}</span>
-                          {!log.granted && (
-                            <>
-                              <span className="text-border">•</span>
-                              <span className="text-rose-500 font-bold uppercase tracking-tighter">Access Denied</span>
-                            </>
-                          )}
-                        </p>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <span className="text-[10px] font-mono text-slate-500 uppercase">{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'}</span>
+                        <div className="h-1.5 w-12 rounded-full bg-slate-800 overflow-hidden">
+                          <div className="h-full w-full bg-blue-500/50" />
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -284,35 +227,6 @@ export default function DashboardPage() {
             </GlassPanel>
           </motion.div>
         </div>
-
-        {/* Storage Bar */}
-        <motion.div variants={itemVariants} className="mt-6 mb-8">
-          <GlassPanel className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
-                <HardDrive className="h-3.5 w-3.5" />
-                Storage Utilization
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {formatBytes(stats.usedStorage)} / {formatBytes(stats.totalStorage)}
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/5 border border-white/5">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]"
-                initial={{ width: 0 }}
-                animate={{ width: `${stats.usagePercent}%` }}
-                transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground uppercase font-bold tracking-wider">{stats.usagePercent.toFixed(1)}% used</span>
-              <span className={`font-bold uppercase tracking-wider ${stats.usagePercent > 80 ? "text-amber-500" : "text-emerald-500"}`}>
-                {stats.usagePercent > 80 ? "Cleanup Recommended" : "Optimal"}
-              </span>
-            </div>
-          </GlassPanel>
-        </motion.div>
       </motion.div>
     </div>
   )

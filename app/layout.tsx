@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { SceneProvider } from "@/components/three/scene-provider"
+import { SmoothScrollProvider } from "@/components/premium/SmoothScrollProvider"
+import { CustomCursor } from "@/components/premium/CustomCursor"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,11 +35,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
-      <body className="font-sans antialiased overflow-hidden h-full" suppressHydrationWarning>
-        <SceneProvider />
-        <main className="relative z-10 h-screen overflow-y-auto">
-          {children}
-        </main>
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        <SmoothScrollProvider>
+          <CustomCursor />
+          <main className="relative z-10 w-full">
+            {children}
+          </main>
+        </SmoothScrollProvider>
       </body>
     </html>
   )

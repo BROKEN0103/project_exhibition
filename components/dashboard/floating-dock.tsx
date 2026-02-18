@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   BookOpen,
   Upload,
-  Activity,
   Shield,
   Settings,
   LayoutDashboard,
@@ -26,7 +25,6 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/library", icon: BookOpen, label: "Library" },
   { href: "/upload", icon: Upload, label: "Upload" },
-  { href: "/activity", icon: Activity, label: "Activity" },
   { href: "/access-control", icon: Shield, label: "Access Control" },
 ]
 
@@ -51,14 +49,19 @@ export function FloatingDock() {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const data = await res.json()
-        setNotifications(data.map((n: any) => ({
-          id: n._id,
-          title: n.title,
-          message: n.message,
-          type: n.type,
-          createdAt: n.createdAt,
-          isRead: n.isRead
-        })))
+        if (Array.isArray(data)) {
+          setNotifications(data.map((n: any) => ({
+            id: n._id,
+            title: n.title,
+            message: n.message,
+            type: n.type,
+            createdAt: n.createdAt,
+            isRead: n.isRead
+          })))
+        } else {
+          console.warn("Expected array for notifications, got:", data)
+          setNotifications([])
+        }
       } catch (err) {
         console.error("Failed to fetch notifications", err)
       }
@@ -71,11 +74,8 @@ export function FloatingDock() {
   const unreadCount = notifications.filter(n => !n.isRead).length
 
   async function handleLogout() {
-    const result = await logoutAction()
     setUser(null)
-    if (result.redirect) {
-      router.push(result.redirect)
-    }
+    await logoutAction()
   }
 
   async function handleMarkRead(id: string) {

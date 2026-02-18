@@ -1,97 +1,62 @@
 "use client"
 
-import { useRef, useMemo } from "react"
+import React, { useRef, useMemo } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
-function Particles({ count = 800 }: { count?: number }) {
-  const mesh = useRef<THREE.Points>(null!)
-  const light = useRef<THREE.PointLight>(null!)
+function CinematicParticles({ count = 2000 }: { count?: number }) {
+  const points = useRef<THREE.Points>(null)
 
   const particles = useMemo(() => {
-    const positions = new Float32Array(count * 3)
-    const sizes = new Float32Array(count)
+    const pos = new Float32Array(count * 3)
+    const vel = new Float32Array(count)
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 30
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 30
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 30
-      sizes[i] = Math.random() * 2 + 0.5
+      pos[i * 3] = (Math.random() - 0.5) * 40
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 40
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 40
+      vel[i] = Math.random() * 0.02 + 0.01
     }
-    return { positions, sizes }
+    return { pos, vel }
   }, [count])
 
-  useFrame((state: any) => {
-    const time = state.clock.getElapsedTime()
-    if (mesh.current) {
-      mesh.current.rotation.y = time * 0.02
-      mesh.current.rotation.x = Math.sin(time * 0.01) * 0.1
-    }
-    if (light.current) {
-      light.current.position.x = Math.sin(time * 0.3) * 5
-      light.current.position.z = Math.cos(time * 0.3) * 5
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+    if (points.current) {
+      points.current.rotation.y = t * 0.02
+      points.current.rotation.x = Math.sin(t * 0.05) * 0.1
     }
   })
 
   return (
-    <>
-      <pointLight ref={light} color="#2dd4bf" intensity={0.4} distance={20} />
-      <ambientLight intensity={0.03} />
-      <points ref={mesh}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={count}
-            array={particles.positions}
-            itemSize={3}
-          />
-          <bufferAttribute
-            attach="attributes-size"
-            count={count}
-            array={particles.sizes}
-            itemSize={1}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.03}
-          color="#2dd4bf"
-          transparent
-          opacity={0.4}
-          sizeAttenuation
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[particles.pos, 3]}
         />
-      </points>
-    </>
-  )
-}
-
-function GridPlane() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
-      <planeGeometry args={[60, 60, 60, 60]} />
-      <meshBasicMaterial
-        color="#2dd4bf"
-        wireframe
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.05}
+        color="#3b82f6"
         transparent
-        opacity={0.02}
+        opacity={0.15}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
       />
-    </mesh>
+    </points>
   )
 }
 
 export default function ParticleField() {
   return (
-    <div className="fixed inset-0 z-0" aria-hidden="true">
-      <Canvas
-        camera={{ position: [0, 0, 12], fov: 60 }}
-        dpr={[1, 1.5]}
-        gl={{ antialias: false, alpha: true }}
-        style={{ background: "transparent" }}
-      >
-        <fog attach="fog" args={["#050a0e", 8, 30]} />
-        <Particles />
-        <GridPlane />
+    <div className="fixed inset-0 z-0 pointer-events-none bg-[#050505]">
+      <Canvas camera={{ position: [0, 0, 15], fov: 60 }}>
+        <fog attach="fog" args={["#050505", 5, 25]} />
+        <CinematicParticles />
+        <ambientLight intensity={0.5} />
       </Canvas>
+      <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
     </div>
   )
 }

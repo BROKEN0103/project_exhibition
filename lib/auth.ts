@@ -5,7 +5,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "vault-secure-platform-secret-key-2026-default"
 )
 
-const COOKIE_NAME = "vault-session"
+const COOKIE_NAME = "accessToken"
 const JWT_EXPIRY = "7d"
 
 export interface SessionPayload extends JWTPayload {

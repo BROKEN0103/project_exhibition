@@ -1,5 +1,7 @@
+const SecurityLog = require("../models/SecurityLog");
+
 module.exports = function (requiredPlan) {
-    return function (req, res, next) {
+    return async function (req, res, next) {
         if (!req.user) return res.status(401).json({ message: "Authentication required" });
 
         const plans = {
@@ -11,8 +13,15 @@ module.exports = function (requiredPlan) {
         const userPlan = req.user.subscriptionStatus || 'free';
 
         if (plans[userPlan] < plans[requiredPlan]) {
+            await SecurityLog.create({
+                userId: req.user.userId,
+                action: 'UNAUTHORIZED_ACCESS',
+                severity: 'LOW',
+                details: `Feature requires ${requiredPlan} plan, user has ${userPlan}`,
+                ipAddress: req.ip
+            });
             return res.status(403).json({
-                message: `This feature requires a ${requiredPlan} subscription. Current plan: ${userPlan}`
+                message: `This feature requires a ${requiredPlan} subscription.`
             });
         }
 

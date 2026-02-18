@@ -1,6 +1,7 @@
 "use server"
 
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import {
   createJWT,
   verifyJWT,
@@ -52,10 +53,16 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
       return { success: false, error: data.message || "Invalid credentials" }
     }
 
-    const { token } = data;
+    const { accessToken } = data;
 
     const cookieStore = await cookies()
-    cookieStore.set(getCookieName(), token, getCookieOptions())
+    cookieStore.set("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 600 // 10 minutes
+    })
 
     return { success: true, redirect: "/dashboard" }
   } catch (err) {
@@ -83,12 +90,18 @@ export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
     const data = await res.json();
     if (!res.ok) return { success: false, error: data.message || "Invalid code" };
 
-    const { token } = data;
+    const { accessToken } = data;
 
     // Clear pending cookie
     cookieStore.delete("auth_pending")
     // Set real cookie
-    cookieStore.set(getCookieName(), token, getCookieOptions())
+    cookieStore.set("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 600
+    })
 
     return { success: true, redirect: "/dashboard" };
   } catch (err) {
@@ -118,22 +131,40 @@ export async function signupAction(formData: FormData): Promise<AuthResult> {
       return { success: false, error: data.message || "Signup failed" }
     }
 
-    const { token } = data;
+    // In the new architecture, signup doesn't return a token, user must login.
+    // Or we could auto-login them. The backend currently returns status 201 with a message.
 
-    const cookieStore = await cookies()
-    cookieStore.set(getCookieName(), token, getCookieOptions())
-
-    return { success: true, redirect: "/dashboard" }
+    return { success: true, redirect: "/auth/login", error: "Account created. Please login." }
   } catch (err) {
     console.error("Signup failed:", err);
     return { success: false, error: "Something went wrong. Please try again." };
   }
 }
 
-export async function logoutAction(): Promise<AuthResult> {
+export async function logoutAction(): Promise<void> {
   const cookieStore = await cookies()
-  cookieStore.delete(getCookieName())
-  return { success: true, redirect: "/auth/login" }
+
+  try {
+    const accessToken = cookieStore.get("accessToken")?.value;
+    if (accessToken) {
+      await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Backend logout failed:", err);
+  }
+
+  // Clear all cookies
+  cookieStore.set("accessToken", "", { maxAge: 0, path: '/' })
+  cookieStore.set("refreshToken", "", { maxAge: 0, path: '/' })
+  cookieStore.set("vault-session", "", { maxAge: 0, path: '/' })
+
+  redirect("/auth/login")
 }
 
 export async function getSession(): Promise<SessionPayload | null> {

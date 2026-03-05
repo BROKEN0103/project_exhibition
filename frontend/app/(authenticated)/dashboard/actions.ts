@@ -12,11 +12,14 @@ export async function fetchDashboardData() {
 
     const headers = { Authorization: `Bearer ${token}` }
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+    console.log(`[Dashboard] Fetching data from ${baseUrl}`)
+
     try {
         const [docsRes, logsRes, notifsRes] = await Promise.all([
-            fetch("https://project-exhibition.onrender.com/api/models", { headers, cache: "no-store" }),
-            fetch("https://project-exhibition.onrender.com/api/activities", { headers, cache: "no-store" }),
-            fetch("https://project-exhibition.onrender.com/api/notifications", { headers, cache: "no-store" })
+            fetch(`${baseUrl}/api/models`, { headers, cache: "no-store", credentials: "include" }),
+            fetch(`${baseUrl}/api/activities`, { headers, cache: "no-store", credentials: "include" }),
+            fetch(`${baseUrl}/api/notifications`, { headers, cache: "no-store", credentials: "include" })
         ])
 
         if (!docsRes.ok || !logsRes.ok || !notifsRes.ok) {
@@ -42,7 +45,7 @@ export async function fetchDashboardData() {
             metadata: {
                 isEncrypted: d.isEncrypted,
                 version: d.version,
-                fileUrl: `https://project-exhibition.onrender.com/uploads/${d.fileUrl}`
+                fileUrl: `${baseUrl}/uploads/${d.fileUrl}`
             }
         }))
 

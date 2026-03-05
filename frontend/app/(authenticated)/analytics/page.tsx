@@ -40,9 +40,11 @@ export default function AnalyticsPage() {
         if (!user) return
 
         const fetchAnalytics = async () => {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
             try {
-                const res = await fetch("https://project-exhibition.onrender.com/api/analytics", {
-                    headers: { "Authorization": `Bearer ${user.token}` }
+                const res = await fetch(`${baseUrl}/api/analytics`, {
+                    headers: { "Authorization": `Bearer ${user.token}` },
+                    credentials: "include"
                 })
                 const data = await res.json()
                 setAnalytics(data)

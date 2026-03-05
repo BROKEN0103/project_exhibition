@@ -147,7 +147,8 @@ export default function ViewerPage({
 
                 // Trigger secure download
                 try {
-                  const downloadUrl = `https://project-exhibition.onrender.com/api/models/${doc.id}/download?token=${user.token}`;
+                  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+                  const downloadUrl = `${baseUrl}/api/models/${doc.id}/download?token=${user.token}`;
 
                   // Use a temporary link to force download without replacing page
                   const link = document.createElement('a');

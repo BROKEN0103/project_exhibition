@@ -55,9 +55,11 @@ export default function UploadPage() {
   React.useEffect(() => {
     if (!user) return
     const fetchSelectData = async () => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
       try {
-        const wsRes = await fetch("https://project-exhibition.onrender.com/api/workspaces", {
-          headers: { "Authorization": `Bearer ${user.token}` }
+        const wsRes = await fetch(`${baseUrl}/api/workspaces`, {
+          headers: { "Authorization": `Bearer ${user.token}` },
+          credentials: "include"
         })
         const wsData = await wsRes.json()
         if (Array.isArray(wsData)) {
@@ -83,9 +85,11 @@ export default function UploadPage() {
   React.useEffect(() => {
     if (!user || !workspaceId) return
     const fetchFolders = async () => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
       try {
-        const fRes = await fetch(`https://project-exhibition.onrender.com/api/folders?workspaceId=${workspaceId}`, {
-          headers: { "Authorization": `Bearer ${user.token}` }
+        const fRes = await fetch(`${baseUrl}/api/folders?workspaceId=${workspaceId}`, {
+          headers: { "Authorization": `Bearer ${user.token}` },
+          credentials: "include"
         })
         const fData = await fRes.json()
         if (Array.isArray(fData)) {
@@ -179,12 +183,15 @@ export default function UploadPage() {
       formData.append("encryptedKey", encryptedKey)
       formData.append("iv", iv)
 
-      const res = await fetch("http://127.0.0.1:5000/api/models", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+      console.log(`[Upload] Sending payload to ${baseUrl}/api/models`)
+      const res = await fetch(`${baseUrl}/api/models`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${user.token}`
         },
-        body: formData
+        body: formData,
+        credentials: "include"
       })
 
       if (!res.ok) throw new Error("Upload failed")

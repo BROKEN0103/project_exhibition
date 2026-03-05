@@ -29,13 +29,18 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Email and password are required" }
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  console.log(`Attempting login for ${email} at ${baseUrl}/api/auth/login`)
+
   try {
-    const res = await fetch("https://project-exhibition.onrender.com/api/auth/login", {
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      credentials: "include"
     });
 
+    console.log(`Login response status: ${res.status}`)
     const data = await res.json();
 
     if (res.status === 202) {
@@ -80,13 +85,18 @@ export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
   if (!otp) return { success: false, error: "Code required" };
   if (!tempToken) return { success: false, error: "Session expired" };
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  console.log(`Verifying 2FA at ${baseUrl}/api/auth/verify-2fa`)
+
   try {
-    const res = await fetch("https://project-exhibition.onrender.com/api/auth/verify-2fa", {
+    const res = await fetch(`${baseUrl}/api/auth/verify-2fa`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tempToken, otp }),
+      credentials: "include"
     });
 
+    console.log(`2FA response status: ${res.status}`)
     const data = await res.json();
     if (!res.ok) return { success: false, error: data.message || "Invalid code" };
 
@@ -118,13 +128,18 @@ export async function signupAction(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "All fields are required" }
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  console.log(`Attempting signup for ${email} at ${baseUrl}/api/auth/signup`)
+
   try {
-    const res = await fetch("https://project-exhibition.onrender.com/api/auth/signup", {
+    const res = await fetch(`${baseUrl}/api/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
+      credentials: "include"
     });
 
+    console.log(`Signup response status: ${res.status}`)
     const data = await res.json();
 
     if (!res.ok) {
@@ -146,14 +161,19 @@ export async function logoutAction(): Promise<void> {
 
   try {
     const accessToken = cookieStore.get("accessToken")?.value;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+    console.log(`Attempting logout at ${baseUrl}/api/auth/logout`)
+
     if (accessToken) {
-      await fetch("https://project-exhibition.onrender.com/api/auth/logout", {
+      const res = await fetch(`${baseUrl}/api/auth/logout`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json"
-        }
+        },
+        credentials: "include"
       });
+      console.log(`Logout response status: ${res.status}`)
     }
   } catch (err) {
     console.error("Backend logout failed:", err);

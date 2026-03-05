@@ -44,9 +44,11 @@ export function FloatingDock() {
   useEffect(() => {
     if (!user) return
     const fetchNotifications = async () => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
       try {
-        const res = await fetch("https://project-exhibition.onrender.com/api/notifications", {
-          headers: { "Authorization": `Bearer ${user.token}` }
+        const res = await fetch(`${baseUrl}/api/notifications`, {
+          headers: { "Authorization": `Bearer ${user.token}` },
+          credentials: "include"
         })
         const data = await res.json()
         if (Array.isArray(data)) {
@@ -80,10 +82,12 @@ export function FloatingDock() {
 
   async function handleMarkRead(id: string) {
     if (!user) return
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
     try {
-      await fetch(`https://project-exhibition.onrender.com/api/notifications/${id}/read`, {
+      await fetch(`${baseUrl}/api/notifications/${id}/read`, {
         method: "PUT",
-        headers: { "Authorization": `Bearer ${user.token}` }
+        headers: { "Authorization": `Bearer ${user.token}` },
+        credentials: "include"
       })
       markAsRead(id)
     } catch (err) {

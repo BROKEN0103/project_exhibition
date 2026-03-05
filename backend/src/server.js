@@ -20,7 +20,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://project-exhibition.onrender.com"],
+      connectSrc: ["'self'", "https://project-exhibition.onrender.com", "https://*.vercel.app"],
       mediaSrc: ["'self'", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -35,7 +35,7 @@ app.use(helmet({
 
 // 2. CORS Configuration
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+  origin: ["http://localhost:3000", "https://project-exhibition.onrender.com", "https://*.vercel.app"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Device-Fingerprint"]

@@ -30,7 +30,7 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/login", {
+    const res = await fetch("https://project-exhibition.onrender.com/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -81,7 +81,7 @@ export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
   if (!tempToken) return { success: false, error: "Session expired" };
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/verify-2fa", {
+    const res = await fetch("https://project-exhibition.onrender.com/api/auth/verify-2fa", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tempToken, otp }),
@@ -119,7 +119,7 @@ export async function signupAction(formData: FormData): Promise<AuthResult> {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/signup", {
+    const res = await fetch("https://project-exhibition.onrender.com/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
@@ -147,7 +147,7 @@ export async function logoutAction(): Promise<void> {
   try {
     const accessToken = cookieStore.get("accessToken")?.value;
     if (accessToken) {
-      await fetch("http://localhost:5000/api/auth/logout", {
+      await fetch("https://project-exhibition.onrender.com/api/auth/logout", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,

@@ -20,7 +20,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:5000", "http://127.0.0.1:5000"],
+      connectSrc: ["'self'", "https://project-exhibition.onrender.com"],
       mediaSrc: ["'self'", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],

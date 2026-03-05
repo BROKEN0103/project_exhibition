@@ -45,7 +45,7 @@ export function FloatingDock() {
     if (!user) return
     const fetchNotifications = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/notifications", {
+        const res = await fetch("https://project-exhibition.onrender.com/api/notifications", {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const data = await res.json()
@@ -81,7 +81,7 @@ export function FloatingDock() {
   async function handleMarkRead(id: string) {
     if (!user) return
     try {
-      await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      await fetch(`https://project-exhibition.onrender.com/api/notifications/${id}/read`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${user.token}` }
       })

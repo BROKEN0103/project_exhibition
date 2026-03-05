@@ -14,9 +14,9 @@ export async function fetchDashboardData() {
 
     try {
         const [docsRes, logsRes, notifsRes] = await Promise.all([
-            fetch("http://localhost:5000/api/models", { headers, cache: "no-store" }),
-            fetch("http://localhost:5000/api/activities", { headers, cache: "no-store" }),
-            fetch("http://localhost:5000/api/notifications", { headers, cache: "no-store" })
+            fetch("https://project-exhibition.onrender.com/api/models", { headers, cache: "no-store" }),
+            fetch("https://project-exhibition.onrender.com/api/activities", { headers, cache: "no-store" }),
+            fetch("https://project-exhibition.onrender.com/api/notifications", { headers, cache: "no-store" })
         ])
 
         if (!docsRes.ok || !logsRes.ok || !notifsRes.ok) {
@@ -42,7 +42,7 @@ export async function fetchDashboardData() {
             metadata: {
                 isEncrypted: d.isEncrypted,
                 version: d.version,
-                fileUrl: `http://localhost:5000/uploads/${d.fileUrl}`
+                fileUrl: `https://project-exhibition.onrender.com/uploads/${d.fileUrl}`
             }
         }))
 

@@ -56,7 +56,7 @@ export default function UploadPage() {
     if (!user) return
     const fetchSelectData = async () => {
       try {
-        const wsRes = await fetch("http://localhost:5000/api/workspaces", {
+        const wsRes = await fetch("https://project-exhibition.onrender.com/api/workspaces", {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const wsData = await wsRes.json()
@@ -84,7 +84,7 @@ export default function UploadPage() {
     if (!user || !workspaceId) return
     const fetchFolders = async () => {
       try {
-        const fRes = await fetch(`http://localhost:5000/api/folders?workspaceId=${workspaceId}`, {
+        const fRes = await fetch(`https://project-exhibition.onrender.com/api/folders?workspaceId=${workspaceId}`, {
           headers: { "Authorization": `Bearer ${user.token}` }
         })
         const fData = await fRes.json()

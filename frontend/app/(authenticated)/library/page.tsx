@@ -351,7 +351,7 @@ export default function LibraryPage() {
   const handleInviteMember = async () => {
     if (!inviteEmail || !selectedWorkspace || !user) return
     try {
-      const res = await fetch("http://localhost:5000/api/workspaces/invite", {
+      const res = await fetch("https://project-exhibition.onrender.com/api/workspaces/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -370,7 +370,7 @@ export default function LibraryPage() {
       }
 
       // Refresh workspaces to get new members list
-      const wsRes = await fetch("http://localhost:5000/api/workspaces", {
+      const wsRes = await fetch("https://project-exhibition.onrender.com/api/workspaces", {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const wsData = await wsRes.json()
@@ -395,7 +395,7 @@ export default function LibraryPage() {
   const handleCreateWorkspace = async (name: string) => {
     if (!name || !user) return
     try {
-      const res = await fetch("http://localhost:5000/api/workspaces", {
+      const res = await fetch("https://project-exhibition.onrender.com/api/workspaces", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -407,7 +407,7 @@ export default function LibraryPage() {
       const newWs = await res.json()
 
       // Refresh workspaces
-      const wsRes = await fetch("http://localhost:5000/api/workspaces", {
+      const wsRes = await fetch("https://project-exhibition.onrender.com/api/workspaces", {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const wsData = await wsRes.json()
@@ -441,7 +441,7 @@ export default function LibraryPage() {
   const handleDeleteWorkspace = async (id: string) => {
     if (!user || !confirm("Erase all data in this secure enclave?")) return
     try {
-      const res = await fetch(`http://localhost:5000/api/workspaces/${id}`, {
+      const res = await fetch(`https://project-exhibition.onrender.com/api/workspaces/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${user.token}` }
       })
@@ -457,7 +457,7 @@ export default function LibraryPage() {
   const handleCreateFolder = async (name: string) => {
     if (!name || !selectedWorkspace || !user) return
     try {
-      const res = await fetch("http://localhost:5000/api/folders", {
+      const res = await fetch("https://project-exhibition.onrender.com/api/folders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -468,7 +468,7 @@ export default function LibraryPage() {
       if (!res.ok) throw new Error("Failed to create folder")
 
       // Refresh folders
-      const folderRes = await fetch(`http://localhost:5000/api/folders?workspaceId=${selectedWorkspace}`, {
+      const folderRes = await fetch(`https://project-exhibition.onrender.com/api/folders?workspaceId=${selectedWorkspace}`, {
         headers: { "Authorization": `Bearer ${user.token}` }
       })
       const fData = await folderRes.json()
@@ -504,7 +504,7 @@ export default function LibraryPage() {
     setSemanticError(null)
 
     try {
-      const res = await fetch("http://localhost:5000/api/search/semantic", {
+      const res = await fetch("https://project-exhibition.onrender.com/api/search/semantic", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -543,11 +543,11 @@ export default function LibraryPage() {
         if (selectedFolder) query.append("folderId", selectedFolder)
 
         const [wsRes, folderRes, docRes] = await Promise.all([
-          fetch("http://localhost:5000/api/workspaces", { headers: { "Authorization": `Bearer ${user.token}` } }),
+          fetch("https://project-exhibition.onrender.com/api/workspaces", { headers: { "Authorization": `Bearer ${user.token}` } }),
           selectedWorkspace
-            ? fetch(`http://localhost:5000/api/folders?workspaceId=${selectedWorkspace}`, { headers: { "Authorization": `Bearer ${user.token}` } })
+            ? fetch(`https://project-exhibition.onrender.com/api/folders?workspaceId=${selectedWorkspace}`, { headers: { "Authorization": `Bearer ${user.token}` } })
             : Promise.resolve({ json: () => [] }),
-          fetch(`http://localhost:5000/api/models?${query.toString()}`, {
+          fetch(`https://project-exhibition.onrender.com/api/models?${query.toString()}`, {
             headers: { "Authorization": `Bearer ${user.token}` }
           })
         ])
@@ -591,7 +591,7 @@ export default function LibraryPage() {
             metadata: {
               isEncrypted: d.isEncrypted,
               version: d.version,
-              fileUrl: `http://localhost:5000/uploads/${d.fileUrl}?token=${user.token}`
+              fileUrl: `https://project-exhibition.onrender.com/uploads/${d.fileUrl}?token=${user.token}`
             }
           })))
         }

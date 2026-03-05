@@ -26,6 +26,12 @@ function Pulse({ start, end, delay }: { start: THREE.Vector3, end: THREE.Vector3
     )
 }
 
+interface Connection {
+    start: THREE.Vector3
+    end: THREE.Vector3
+    delay: number
+}
+
 function Connections() {
     const nodes = useMemo(() => {
         const p = []
@@ -40,14 +46,17 @@ function Connections() {
     }, [])
 
     const connections = useMemo(() => {
-        const c = []
+        const c: Connection[] = []
         for (let i = 0; i < nodes.length; i++) {
+            const current = nodes[i]
+            if (!current) continue
+
             const nearest = [...nodes]
-                .sort((a, b) => a.distanceTo(nodes[i]) - b.distanceTo(nodes[i]))
+                .sort((a, b) => a.distanceTo(current) - b.distanceTo(current))
                 .slice(1, 3)
 
             nearest.forEach(n => {
-                c.push({ start: nodes[i], end: n, delay: Math.random() })
+                c.push({ start: current, end: n, delay: Math.random() })
             })
         }
         return c

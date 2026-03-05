@@ -43,7 +43,7 @@ export function Sidebar() {
     }
 
     return (
-        <div className="hidden w-72 border-r border-white/5 bg-black/40 backdrop-blur-2xl md:flex flex-col h-full shrink-0 relative overflow-hidden">
+        <div className="hidden w-72 border-r border-white/5 bg-black/40 backdrop-blur-2xl md:flex flex-col sticky top-0 h-screen shrink-0 relative overflow-hidden">
             {/* Background Glow */}
             <div className="absolute -top-24 -left-20 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full" />
 

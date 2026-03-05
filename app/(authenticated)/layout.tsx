@@ -28,10 +28,10 @@ export default async function AuthenticatedLayout({
   return (
     <SessionHydrator user={user}>
       <DataInitializer />
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex min-h-screen">
         <Sidebar />
-        <div className="flex-1 relative flex flex-col h-full overflow-hidden">
-          <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
+        <div className="flex-1 relative flex flex-col">
+          <main className="flex-1 pb-24 md:pb-8">
             {children}
           </main>
           <div className="md:hidden">

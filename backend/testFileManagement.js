@@ -1,7 +1,7 @@
 // Test script for File Management API
 // Run this with: node testFileManagement.js
 
-const baseURL = 'http://localhost:5000/api';
+const baseURL = 'https://project-exhibition.onrender.com/api';
 
 // You'll need to replace this with a valid JWT token from your login
 const AUTH_TOKEN = 'YOUR_JWT_TOKEN_HERE';

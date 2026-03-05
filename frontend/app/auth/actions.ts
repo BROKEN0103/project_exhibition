@@ -41,6 +41,12 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
     });
 
     console.log(`Login response status: ${res.status}`)
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const errorText = await res.text();
+      console.error(`Login failed with non-JSON response: ${errorText.substring(0, 100)}`);
+      return { success: false, error: `Authentication server error (${res.status})` };
+    }
     const data = await res.json();
 
     if (res.status === 202) {
@@ -97,6 +103,10 @@ export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
     });
 
     console.log(`2FA response status: ${res.status}`)
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return { success: false, error: "Verification server error" };
+    }
     const data = await res.json();
     if (!res.ok) return { success: false, error: data.message || "Invalid code" };
 
@@ -140,6 +150,10 @@ export async function signupAction(formData: FormData): Promise<AuthResult> {
     });
 
     console.log(`Signup response status: ${res.status}`)
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return { success: false, error: "Signup server error" };
+    }
     const data = await res.json();
 
     if (!res.ok) {

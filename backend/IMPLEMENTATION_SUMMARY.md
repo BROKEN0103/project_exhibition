@@ -193,7 +193,7 @@ The backend server is already running. You can test the endpoints using:
 
 Example cURL test:
 ```bash
-curl -X GET http://localhost:5000/api/workspaces \
+curl -X GET https://project-exhibition.onrender.com/api/workspaces \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

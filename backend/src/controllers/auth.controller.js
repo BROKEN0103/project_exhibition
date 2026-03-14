@@ -38,20 +38,24 @@ exports.signup = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  console.log(`[Login] Attempt for email: ${email}`);
   const session = getSessionData(req);
 
   try {
     const user = await User.findOne({ email });
+    console.log(`[Login] User found: ${!!user}${user ? ` (role: ${user.role}, locked: ${user.lockUntil}, attempts: ${user.loginAttempts})` : ''}`);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Check if locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
+      console.log(`[Login] Account locked until ${user.lockUntil}`);
       return res.status(403).json({ message: "Account locked. Try again later." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log(`[Login] Password match: ${isMatch}`);
     if (!isMatch) {
       await user.incrementLoginAttempts();
       await SecurityLog.create({

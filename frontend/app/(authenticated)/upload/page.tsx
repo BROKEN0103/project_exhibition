@@ -98,7 +98,7 @@ export default function UploadPage() {
       formData.append("encryptedKey", encryptedKey)
       formData.append("iv", iv)
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
       const res = await fetch(`${baseUrl}/api/models`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${user.token}` },

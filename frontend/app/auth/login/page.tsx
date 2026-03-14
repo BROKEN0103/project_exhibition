@@ -38,6 +38,10 @@ export default function LoginPage() {
       if (result.success) {
         if (result.requires2FA) {
           setRequires2FA(true)
+          if (result.testOtp) {
+            setOtp(result.testOtp)
+            // Just output it directly or prefill
+          }
         } else if (result.redirect) {
           router.push(result.redirect)
         }

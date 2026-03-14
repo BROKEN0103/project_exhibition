@@ -39,6 +39,7 @@ exports.generateTokens = (user, sessionData) => {
             userId: user._id,
             role: user.role,
             email: user.email,
+            name: user.name,
             sessionHash: sessionData.hash
         },
         process.env.JWT_SECRET,

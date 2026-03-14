@@ -76,8 +76,15 @@ exports.login = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: '5m' }
       );
-      // In production, send OTP via Email/SMS. Here we just return it or log it.
-      return res.status(202).json({ requires2FA: true, tempToken: otpToken });
+
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otpSecret = generatedOtp;
+      user.otpExpires = Date.now() + 5 * 60 * 1000;
+      await user.save();
+
+      // In production, send OTP via Email/SMS. Here we just return it for testing.
+      console.log(`Generated OTP for ${user.email}: ${generatedOtp}`);
+      return res.status(202).json({ requires2FA: true, tempToken: otpToken, testOtp: generatedOtp });
     }
 
     // Limit concurrent sessions (max 2)

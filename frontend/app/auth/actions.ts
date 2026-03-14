@@ -19,6 +19,7 @@ export interface AuthResult {
   redirect?: string
   requires2FA?: boolean
   email?: string
+  testOtp?: string
 }
 
 export async function loginAction(formData: FormData): Promise<AuthResult> {
@@ -56,7 +57,7 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 600
       })
-      return { success: true, requires2FA: true, email }
+      return { success: true, requires2FA: true, email, testOtp: data.testOtp }
     }
 
     if (!res.ok) {

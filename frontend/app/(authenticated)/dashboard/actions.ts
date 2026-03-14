@@ -12,7 +12,10 @@ export async function fetchDashboardData() {
 
     const headers = { Authorization: `Bearer ${token}` }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
     console.log(`[Dashboard] Fetching data from ${baseUrl}`)
 
     try {

@@ -30,7 +30,10 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Email and password are required" }
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
   console.log(`Attempting login for ${email} at ${baseUrl}/api/auth/login`)
 
   try {
@@ -92,7 +95,10 @@ export async function verify2FAAction(formData: FormData): Promise<AuthResult> {
   if (!otp) return { success: false, error: "Code required" };
   if (!tempToken) return { success: false, error: "Session expired" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
   console.log(`Verifying 2FA at ${baseUrl}/api/auth/verify-2fa`)
 
   try {
@@ -139,7 +145,10 @@ export async function signupAction(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "All fields are required" }
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
   console.log(`Attempting signup for ${email} at ${baseUrl}/api/auth/signup`)
 
   try {
@@ -176,7 +185,10 @@ export async function logoutAction(): Promise<void> {
 
   try {
     const accessToken = cookieStore.get("accessToken")?.value;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
     console.log(`Attempting logout at ${baseUrl}/api/auth/logout`)
 
     if (accessToken) {

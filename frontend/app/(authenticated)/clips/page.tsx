@@ -39,7 +39,10 @@ export default function ClipsPage() {
 
     const fetchClips = async () => {
         if (!user) return
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
         try {
             const res = await fetch(`${baseUrl}/api/clips`, {
                 headers: { "Authorization": `Bearer ${user.token}` },
@@ -60,7 +63,10 @@ export default function ClipsPage() {
     const handleGenerate = async () => {
         if (!user || !selectedContent) return
         setGenerating(selectedContent)
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
         try {
             const res = await fetch(`${baseUrl}/api/clips/generate/${selectedContent}`, {
                 method: "POST",
@@ -79,7 +85,10 @@ export default function ClipsPage() {
 
     const handleDelete = async (clipId: string) => {
         if (!user || !confirm("Delete this clip?")) return
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
+        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
+          baseUrl = "https://project-exhibition.onrender.com";
+        }
         try {
             await fetch(`${baseUrl}/api/clips/${clipId}`, {
                 method: "DELETE",

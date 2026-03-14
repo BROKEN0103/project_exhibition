@@ -5,7 +5,7 @@ const auth = require("../middleware/auth.middleware");
 const role = require("../middleware/role.middleware");
 
 // Basic workspace operations
-router.post("/", auth, role(["admin", "editor"]), createWorkspace);
+router.post("/", auth, createWorkspace);
 router.get("/", auth, getWorkspaces);
 router.post("/invite", auth, inviteMember);
 

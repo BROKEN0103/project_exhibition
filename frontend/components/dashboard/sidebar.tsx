@@ -134,7 +134,7 @@ export function Sidebar() {
                     <div>
                         <div className="flex items-center justify-between px-4 mb-4">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Workspaces</p>
-                            {(isAdmin || user?.role === "editor") && (
+                            {user && (
                                 <button onClick={handleCreateWorkspace} className="text-blue-500 hover:text-white transition-colors" title="Add Workspace">
                                     <Plus className="h-4 w-4" />
                                 </button>

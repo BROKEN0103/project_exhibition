@@ -45,12 +45,9 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null)
 
   const workspaces = useAppStore((s) => s.workspaces)
-  const folders = useAppStore((s) => s.folders)
   const setWorkspaces = useAppStore((s) => s.setWorkspaces)
-  const setFolders = useAppStore((s) => s.setFolders)
 
   const [workspaceId, setWorkspaceId] = useState("")
-  const [folderId, setFolderId] = useState("")
 
   React.useEffect(() => {
     if (!user) return
@@ -82,33 +79,9 @@ export default function UploadPage() {
     fetchSelectData()
   }, [user, setWorkspaces])
 
-  React.useEffect(() => {
-    if (!user || !workspaceId) return
-    const fetchFolders = async () => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
-      try {
-        const fRes = await fetch(`${baseUrl}/api/folders?workspaceId=${workspaceId}`, {
-          headers: { "Authorization": `Bearer ${user.token}` },
-          credentials: "include"
-        })
-        const fData = await fRes.json()
-        if (Array.isArray(fData)) {
-          setFolders(fData.map((f: any) => ({
-            id: f._id,
-            name: f.name,
-            workspace: f.workspace,
-            parent: f.parent,
-            path: f.path
-          })))
-        }
-      } catch (err) {
-        console.error("Fetch folders failed", err)
-      }
-    }
-    fetchFolders()
-  }, [user, workspaceId, setFolders])
 
-  const canUpload = user?.role === "admin" || user?.role === "editor"
+
+  const canUpload = user?.role === "admin" || user?.role === "editor" || user?.role === "user"
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -178,7 +151,6 @@ export default function UploadPage() {
       formData.append("title", title || pendingFiles[0].name)
       formData.append("description", "Uploaded via web interface")
       formData.append("workspaceId", workspaceId)
-      if (folderId) formData.append("folderId", folderId)
       formData.append("isEncrypted", isEncrypted.toString())
       formData.append("encryptedKey", encryptedKey)
       formData.append("iv", iv)
@@ -208,7 +180,7 @@ export default function UploadPage() {
         uploadedBy: user.name,
         accessRoles: selectedRoles,
         downloadAllowed: true,
-        metadata: { isEncrypted, version: newModel.version, workspaceId, folderId }
+        metadata: { isEncrypted, version: newModel.version, workspaceId }
       })
 
       setUploaded(true)
@@ -219,7 +191,7 @@ export default function UploadPage() {
       setUploading(false)
       setEncrypting(false)
     }
-  }, [user, pendingFiles, title, isEncrypted, selectedRoles, workspaceId, folderId, addDocument])
+  }, [user, pendingFiles, title, isEncrypted, selectedRoles, workspaceId, addDocument])
 
   const reset = useCallback(() => {
     setPendingFiles([])
@@ -343,38 +315,20 @@ export default function UploadPage() {
               {/* Settings */}
               {pendingFiles.length > 0 && (
                 <GlassPanel className="flex flex-col gap-4 p-5">
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label htmlFor="workspace-select" className="mb-1.5 block text-xs text-muted-foreground">
-                        Project Workspace
-                      </label>
-                      <select
-                        id="workspace-select"
-                        value={workspaceId}
-                        onChange={(e) => setWorkspaceId(e.target.value)}
-                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                      >
-                        {workspaces.map((ws) => (
-                          <option key={ws.id} value={ws.id}>{ws.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label htmlFor="folder-select" className="mb-1.5 block text-xs text-muted-foreground">
-                        Folder (Optional)
-                      </label>
-                      <select
-                        id="folder-select"
-                        value={folderId}
-                        onChange={(e) => setFolderId(e.target.value)}
-                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                      >
-                        <option value="">Root Folder</option>
-                        {folders.map((f) => (
-                          <option key={f.id} value={f.id}>{f.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label htmlFor="workspace-select" className="mb-1.5 block text-xs text-muted-foreground">
+                      Project Workspace
+                    </label>
+                    <select
+                      id="workspace-select"
+                      value={workspaceId}
+                      onChange={(e) => setWorkspaceId(e.target.value)}
+                      className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm text-foreground focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                    >
+                      {workspaces.map((ws) => (
+                        <option key={ws.id} value={ws.id}>{ws.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Title */}

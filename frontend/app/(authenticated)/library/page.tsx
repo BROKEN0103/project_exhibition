@@ -128,10 +128,7 @@ export default function LibraryPage() {
     setShowSemanticResults(true)
     setSemanticError(null)
 
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+    const baseUrl = getApiUrl()
     try {
       const res = await fetch(`${baseUrl}/api/ai/search`, {
         method: "POST",
@@ -152,10 +149,7 @@ export default function LibraryPage() {
   // Fetch content
   useEffect(() => {
     if (!user) return
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+    const baseUrl = getApiUrl()
     const fetchData = async () => {
       try {
         const docRes = await fetch(`${baseUrl}/api/models`, {

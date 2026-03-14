@@ -49,10 +49,7 @@ function FeedCard({ item, index }: { item: FeedItem; index: number }) {
         e.stopPropagation()
         if (!user) return
 
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             await fetch(`${baseUrl}/api/interactions`, {
                 method: "POST",
@@ -197,10 +194,7 @@ export default function FeedPage() {
 
     const fetchFeed = useCallback(async (pageNum: number, append = false) => {
         if (!user) return
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             if (pageNum === 1) setLoading(true)
             else setLoadingMore(true)
@@ -248,10 +242,7 @@ export default function FeedPage() {
     const handleRefresh = async () => {
         if (!user) return
         setRefreshing(true)
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             await fetch(`${baseUrl}/api/feed/refresh`, {
                 method: "POST",

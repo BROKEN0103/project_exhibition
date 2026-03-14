@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers"
 import { getCookieName } from "@/lib/auth"
+import { getApiUrl } from "@/lib/api-url"
 import type { Document, AccessLogEntry } from "@/stores/app-store"
 
 export async function fetchDashboardData() {
@@ -12,10 +13,7 @@ export async function fetchDashboardData() {
 
     const headers = { Authorization: `Bearer ${token}` }
 
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+    const baseUrl = getApiUrl()
     console.log(`[Dashboard] Fetching data from ${baseUrl}`)
 
     try {

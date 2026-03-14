@@ -40,10 +40,7 @@ export default function AnalyticsPage() {
         if (!user) return
 
         const fetchAnalytics = async () => {
-            let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+            const baseUrl = getApiUrl()
             try {
                 const res = await fetch(`${baseUrl}/api/analytics`, {
                     headers: { "Authorization": `Bearer ${user.token}` },

@@ -45,10 +45,7 @@ export default function ViewerPage({ params }: { params: Promise<{ id: string }>
   const [polls, setPolls] = useState<any[]>([])
   const [newComment, setNewComment] = useState("")
 
-  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+  const baseUrl = getApiUrl()
 
   useEffect(() => {
     if (!user || !hasAccess) return

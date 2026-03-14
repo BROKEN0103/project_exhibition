@@ -60,10 +60,7 @@ export default function DistributionPage() {
 
     const fetchData = async () => {
         if (!user) return
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             const [jobsRes, analyticsRes] = await Promise.all([
                 fetch(`${baseUrl}/api/distribution`, { headers: { "Authorization": `Bearer ${user.token}` } }),
@@ -87,10 +84,7 @@ export default function DistributionPage() {
     const handleCreate = async () => {
         if (!user || !form.contentId || !form.platform) return
         setCreating(true)
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             const res = await fetch(`${baseUrl}/api/distribution`, {
                 method: "POST",
@@ -116,10 +110,7 @@ export default function DistributionPage() {
 
     const handleCancel = async (jobId: string) => {
         if (!user) return
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com";
-        if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-          baseUrl = "https://project-exhibition.onrender.com";
-        }
+        const baseUrl = getApiUrl()
         try {
             await fetch(`${baseUrl}/api/distribution/${jobId}/cancel`, {
                 method: "PATCH",

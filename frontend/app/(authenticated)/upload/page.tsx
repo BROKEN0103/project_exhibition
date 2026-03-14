@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { useAppStore, type UserRole } from "@/stores/app-store"
+import { getApiUrl } from "@/lib/api-url"
 
 function formatBytes(bytes: number) {
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`
@@ -98,10 +99,7 @@ export default function UploadPage() {
       formData.append("encryptedKey", encryptedKey)
       formData.append("iv", iv)
 
-      let baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
-      if (typeof window !== "undefined" && window.location.hostname !== "localhost" && baseUrl.includes("localhost")) {
-        baseUrl = "https://project-exhibition.onrender.com"
-      }
+      const baseUrl = getApiUrl()
 
       const res = await fetch(`${baseUrl}/api/models`, {
         method: "POST",

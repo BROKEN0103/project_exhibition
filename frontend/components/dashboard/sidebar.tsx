@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
 import { logoutAction } from "@/app/auth/actions"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 export function Sidebar() {
     const pathname = usePathname()
@@ -26,6 +27,8 @@ export function Sidebar() {
     const user = useAppStore((s) => s.user)
     const setUser = useAppStore((s) => s.setUser)
     const workspaces = useAppStore((s) => s.workspaces)
+    const setWorkspaces = useAppStore((s) => s.setWorkspaces)
+    const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId)
     const setSelectedWorkspaceId = useAppStore((s) => s.setSelectedWorkspaceId)
 
     const navItems = [
@@ -40,6 +43,41 @@ export function Sidebar() {
     async function handleLogout() {
         setUser(null)
         await logoutAction()
+    }
+
+    async function handleCreateWorkspace() {
+        if (!user || !user.token) return toast.error("Not authenticated");
+        const name = window.prompt("Enter new workspace name:");
+        if (!name) return;
+
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
+            const res = await fetch(`${baseUrl}/api/workspaces`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${user.token}`
+                },
+                body: JSON.stringify({ name, description: "New secure workspace" })
+            });
+            if (res.ok) {
+                const newWs = await res.json();
+                toast.success("Workspace created effectively");
+
+                // Fetch updated workspaces
+                const textRes = await fetch(`${baseUrl}/api/workspaces`, {
+                    headers: { "Authorization": `Bearer ${user.token}` }
+                });
+                if (textRes.ok) {
+                    const data = await textRes.json();
+                    setWorkspaces(data.map((w: any) => ({ ...w, id: w._id })));
+                }
+            } else {
+                toast.error("Failed to create workspace");
+            }
+        } catch (e) {
+            toast.error("Network error");
+        }
     }
 
     return (
@@ -90,6 +128,43 @@ export function Sidebar() {
                                     </Link>
                                 )
                             })}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between px-4 mb-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Workspaces</p>
+                            {(isAdmin || user?.role === "editor") && (
+                                <button onClick={handleCreateWorkspace} className="text-blue-500 hover:text-white transition-colors" title="Add Workspace">
+                                    <Plus className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            {workspaces.map((ws) => (
+                                <button
+                                    key={ws.id}
+                                    onClick={() => setSelectedWorkspaceId(ws.id)}
+                                    className={cn(
+                                        "w-full flex items-center gap-4 rounded-xl px-4 py-3 text-sm transition-all duration-300 group relative",
+                                        selectedWorkspaceId === ws.id
+                                            ? "text-blue-400 bg-blue-500/5 border border-blue-500/10"
+                                            : "text-slate-400 hover:text-white hover:bg-white/5"
+                                    )}
+                                >
+                                    <FolderIcon className={cn("h-4 w-4 transition-transform group-hover:scale-110", selectedWorkspaceId === ws.id ? "text-blue-400" : "text-slate-500")} />
+                                    <span className="font-semibold tracking-tight truncate text-left flex-1">{ws.name}</span>
+                                    {selectedWorkspaceId === ws.id && (
+                                        <motion.div
+                                            layoutId="activeWorkspace"
+                                            className="absolute left-0 w-1 h-4 bg-blue-500 rounded-full"
+                                        />
+                                    )}
+                                </button>
+                            ))}
+                            {workspaces.length === 0 && (
+                                <p className="px-4 text-xs text-slate-500 italic">No workspaces available.</p>
+                            )}
                         </div>
                     </div>
 

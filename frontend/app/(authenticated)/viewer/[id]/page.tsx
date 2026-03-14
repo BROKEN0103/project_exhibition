@@ -16,9 +16,14 @@ import {
   Plus,
   Sparkles,
   Scan,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  Twitter,
+  Linkedin,
+  Link as LinkIcon
 } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
+import { toast } from "sonner"
 import { useAppStore } from "@/stores/app-store"
 
 function formatBytes(bytes: number) {
@@ -163,9 +168,44 @@ export default function ViewerPage({
               }}
             >
               <Download className="h-4 w-4" />
-              <span>Download</span>
+              <span className="hidden sm:inline">Download</span>
             </motion.button>
           )}
+
+          {/* Social Distribution & Sharing */}
+          <div className="relative group">
+            <button className="flex items-center gap-2 rounded-lg bg-blue-600/10 px-4 py-2 text-sm text-blue-400 transition-colors hover:bg-blue-600/20">
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-black/90 p-2 shadow-xl opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto z-50 flex flex-col gap-1 backdrop-blur-xl">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success("Public secure link copied to clipboard");
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <LinkIcon className="h-3.5 w-3.5" /> Copy Secured Link
+              </button>
+              <button
+                onClick={() => {
+                  window.open(`https://twitter.com/intent/tweet?text=Viewing advanced secure document: ${doc.title}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2]"
+              >
+                <Twitter className="h-3.5 w-3.5" /> Share to Twitter
+              </button>
+              <button
+                onClick={() => {
+                  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank');
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-[#0077b5]/20 hover:text-[#0077b5]"
+              >
+                <Linkedin className="h-3.5 w-3.5" /> Share to LinkedIn
+              </button>
+            </div>
+          </div>
         </motion.div>
 
         {/* Viewer Area */}

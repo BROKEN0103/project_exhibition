@@ -1,26 +1,13 @@
 "use client"
 
-import { useState, use, useEffect, useCallback } from "react"
+import { useState, use, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft,
-  Download,
-  FileText,
-  Video,
-  ImageIcon,
-  Lock,
-  Clock,
-  Shield,
-  Info,
-  Plus,
-  Sparkles,
-  Scan,
-  CheckCircle2,
-  Share2,
-  Twitter,
-  Linkedin,
-  Link as LinkIcon
+  ArrowLeft, Download, FileText, Video, ImageIcon, Lock, Clock, Shield,
+  Info, Sparkles, Share2, Twitter, Linkedin, Link as LinkIcon, MessageSquare,
+  HelpCircle, BarChart2, MessageCircle, Play, Pause, ChevronDown, Check,
+  Send, AlertCircle
 } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { toast } from "sonner"
@@ -32,60 +19,141 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1_000).toFixed(0)} KB`
 }
 
-export default function ViewerPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
+
+export default function ViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const user = useAppStore((s) => s.user)
   const documents = useAppStore((s) => s.documents)
-  const addAccessLog = useAppStore((s) => s.addAccessLog)
-
+  
   const doc = documents.find((d) => d.id === id)
   const hasAccess = user && doc?.accessRoles.includes(user.role)
 
-  const [isScanning, setIsScanning] = useState(false)
-  const [isVerified, setIsVerified] = useState(false)
+  const [activeTab, setActiveTab] = useState<"info" | "comments" | "quizzes" | "polls">("info")
+  const [currentTime, setCurrentTime] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const videoInterval = useRef<NodeJS.Timeout | null>(null)
 
-  const handleStartScan = useCallback(() => {
-    setIsScanning(true)
-    setTimeout(() => {
-      setIsScanning(false)
-      setIsVerified(true)
-    }, 3000)
-  }, [])
+  // Interactive Data
+  const [comments, setComments] = useState<any[]>([])
+  const [quizzes, setQuizzes] = useState<any[]>([])
+  const [polls, setPolls] = useState<any[]>([])
+  const [newComment, setNewComment] = useState("")
 
-  const logAccess = useCallback(() => {
-    if (!user || !doc) return
-    addAccessLog({
-      id: `log-${Date.now()}`,
-      userId: user.id,
-      userName: user.name,
-      documentId: doc.id,
-      documentTitle: doc.title,
-      action: "view",
-      timestamp: new Date().toISOString(),
-      granted: !!hasAccess,
-    })
-  }, [user, doc, hasAccess, addAccessLog])
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
 
   useEffect(() => {
-    logAccess()
-  }, [logAccess])
+    if (!user || !hasAccess) return
+    const fetchData = async () => {
+      try {
+        const [cRes, qRes, pRes] = await Promise.all([
+          fetch(`${baseUrl}/api/interactions/comments/${id}`, { headers: { "Authorization": `Bearer ${user.token}` } }),
+          fetch(`${baseUrl}/api/interactions/quizzes/${id}`, { headers: { "Authorization": `Bearer ${user.token}` } }),
+          fetch(`${baseUrl}/api/interactions/polls/${id}`, { headers: { "Authorization": `Bearer ${user.token}` } })
+        ])
+        if (cRes.ok) setComments(await cRes.json())
+        if (qRes.ok) setQuizzes(await qRes.json())
+        if (pRes.ok) setPolls(await pRes.json())
+      } catch (err) {
+        console.error("Failed to load interactive data", err)
+      }
+    }
+    fetchData()
+
+    // Log view interaction
+    fetch(`${baseUrl}/api/interactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user.token}` },
+      body: JSON.stringify({ contentId: id, type: "view", timestamp: Date.now() })
+    }).catch(console.error)
+  }, [id, user, hasAccess])
+
+  // Simulated Video Player
+  const togglePlay = () => {
+    if (!isPlaying) {
+      setIsPlaying(true)
+      videoInterval.current = setInterval(() => setCurrentTime(t => t + 1), 1000)
+    } else {
+      setIsPlaying(false)
+      if (videoInterval.current) clearInterval(videoInterval.current)
+    }
+  }
+
+  // Handle Comment Submission
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !newComment.trim()) return
+    try {
+      const res = await fetch(`${baseUrl}/api/interactions/comments/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user.token}` },
+        body: JSON.stringify({ text: newComment, timestamp: currentTime })
+      })
+      if (res.ok) {
+        const comment = await res.json()
+        setComments(prev => [...prev, { ...comment, user: { name: user.name } }])
+        setNewComment("")
+        toast.success("Comment added")
+      }
+    } catch {}
+  }
+
+  // Handle Quiz Answer
+  const handleQuizAnswer = async (quizId: string, optionIndex: number) => {
+    if (!user) return
+    try {
+      const res = await fetch(`${baseUrl}/api/interactions/quizzes/${quizId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user.token}` },
+        body: JSON.stringify({ selectedOption: optionIndex })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.isCorrect ? "Correct answer!" : "Incorrect answer")
+        // Refresh quizzes
+        const qRes = await fetch(`${baseUrl}/api/interactions/quizzes/${id}`, { headers: { "Authorization": `Bearer ${user.token}` } })
+        if (qRes.ok) setQuizzes(await qRes.json())
+      } else {
+        toast.error(data.message)
+      }
+    } catch {}
+  }
+
+  // Handle Poll Vote
+  const handlePollVote = async (pollId: string, optionIndex: number) => {
+    if (!user) return
+    try {
+      const res = await fetch(`${baseUrl}/api/interactions/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${user.token}` },
+        body: JSON.stringify({ optionIndex })
+      })
+      if (res.ok) {
+        toast.success("Vote recorded")
+        const pRes = await fetch(`${baseUrl}/api/interactions/polls/${id}`, { headers: { "Authorization": `Bearer ${user.token}` } })
+        if (pRes.ok) setPolls(await pRes.json())
+      } else {
+        const err = await res.json()
+        toast.error(err.message)
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    return () => { if (videoInterval.current) clearInterval(videoInterval.current) }
+  }, [])
 
   if (!doc) {
     return (
       <div className="flex h-full items-center justify-center">
         <GlassPanel className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">Document not found</p>
-          <button
-            onClick={() => router.push("/library")}
-            className="mt-4 text-xs text-primary hover:underline"
-          >
-            Back to Library
-          </button>
+          <p className="text-sm text-slate-400">Document not found</p>
+          <button onClick={() => router.push("/library")} className="mt-4 text-xs text-blue-400 hover:underline">Back to Library</button>
         </GlassPanel>
       </div>
     )
@@ -94,16 +162,11 @@ export default function ViewerPage({
   if (!hasAccess) {
     return (
       <div className="flex h-full items-center justify-center px-4">
-        <GlassPanel glow className="max-w-sm p-8 text-center">
-          <Lock className="mx-auto mb-4 h-8 w-8 text-destructive/60" />
-          <h2 className="mb-2 text-sm text-foreground">Access Denied</h2>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Your role ({user?.role}) does not have permission to view this content.
-          </p>
-          <button
-            onClick={() => router.push("/library")}
-            className="rounded-lg bg-primary/10 px-4 py-2 text-xs text-primary transition-colors hover:bg-primary/15"
-          >
+        <GlassPanel glow className="max-w-sm p-8 text-center bg-rose-500/5 border-rose-500/20">
+          <Lock className="mx-auto mb-4 h-8 w-8 text-rose-500/60" />
+          <h2 className="mb-2 text-sm text-white font-bold">Access Denied</h2>
+          <p className="mb-4 text-xs text-slate-400">Your role ({user?.role}) does not have permission to view.</p>
+          <button onClick={() => router.push("/library")} className="rounded-xl bg-rose-500/10 px-6 py-2.5 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/20">
             Back to Library
           </button>
         </GlassPanel>
@@ -112,322 +175,314 @@ export default function ViewerPage({
   }
 
   return (
-    <div className="min-h-screen px-4 pt-8 md:px-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="min-h-screen px-4 pt-8 md:px-8 pb-24">
+      <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex items-center gap-4"
-        >
-          <button
-            onClick={() => router.push("/library")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/5"
-            aria-label="Back to library"
-          >
-            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-col md:flex-row md:items-center gap-4">
+          <button onClick={() => router.push("/library")} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/10 shrink-0">
+            <ArrowLeft className="h-4 w-4 text-slate-400" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl text-foreground/90">{doc.title}</h1>
-            <p className="text-sm text-muted-foreground">
-              {formatBytes(doc.size)} &middot; {doc.mimeType}
-            </p>
+            <h1 className="truncate text-2xl font-bold tracking-tight text-white mb-1">{doc.title}</h1>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <span className="uppercase tracking-widest font-bold">{doc.type}</span>
+              <span>•</span>
+              <span>{formatBytes(doc.size)}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-blue-400">
+                <Shield className="h-3 w-3" /> Secure E2EE
+              </span>
+            </div>
           </div>
-          {doc.downloadAllowed && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/15"
-              onClick={async () => {
-                addAccessLog({
-                  id: `log-${Date.now()}`,
-                  userId: user.id,
-                  userName: user.name,
-                  documentId: doc.id,
-                  documentTitle: doc.title,
-                  action: "download",
-                  timestamp: new Date().toISOString(),
-                  granted: true,
-                })
-
-                // Trigger secure download
-                try {
-                  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://project-exhibition.onrender.com"
-                  const downloadUrl = `${baseUrl}/api/models/${doc.id}/download?token=${user.token}`;
-
-                  // Use a temporary link to force download without replacing page
-                  const link = document.createElement('a');
-                  link.href = downloadUrl;
-                  link.setAttribute('download', doc.title); // Optional, backend sets content-disposition
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                } catch (err) {
-                  console.error("Download failed", err);
-                }
-              }}
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Download</span>
-            </motion.button>
-          )}
-
-          {/* Social Distribution & Sharing */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 rounded-lg bg-blue-600/10 px-4 py-2 text-sm text-blue-400 transition-colors hover:bg-blue-600/20">
-              <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Share</span>
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-white/10">
+              <Share2 className="h-4 w-4" /> Share
             </button>
-            <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-black/90 p-2 shadow-xl opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto z-50 flex flex-col gap-1 backdrop-blur-xl">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success("Public secure link copied to clipboard");
-                }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                <LinkIcon className="h-3.5 w-3.5" /> Copy Secured Link
+            {doc.downloadAllowed && (
+              <button className="flex items-center gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 text-sm font-semibold text-blue-400 transition-colors hover:bg-blue-500/20">
+                <Download className="h-4 w-4" /> Download
               </button>
-              <button
-                onClick={() => {
-                  window.open(`https://twitter.com/intent/tweet?text=Viewing advanced secure document: ${doc.title}&url=${encodeURIComponent(window.location.href)}`, '_blank');
-                }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2]"
-              >
-                <Twitter className="h-3.5 w-3.5" /> Share to Twitter
-              </button>
-              <button
-                onClick={() => {
-                  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank');
-                }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-[#0077b5]/20 hover:text-[#0077b5]"
-              >
-                <Linkedin className="h-3.5 w-3.5" /> Share to LinkedIn
-              </button>
-            </div>
+            )}
           </div>
         </motion.div>
 
-        {/* Viewer Area */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative group"
-        >
-          <GlassPanel glow className="mb-6 flex aspect-video items-center justify-center relative overflow-hidden">
-            {/* Scan Animation Overlay */}
-            <AnimatePresence>
-              {isScanning && (
-                <motion.div
-                  initial={{ top: -10 }}
-                  animate={{ top: "100%" }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)] z-30"
-                />
-              )}
-            </AnimatePresence>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Visualizer */}
+          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 space-y-6">
+            <GlassPanel className="p-0 overflow-hidden relative group">
+              {/* Content Area */}
+              <div className="aspect-video bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center relative">
+                {doc.type === "video" ? (
+                  <>
+                    <Video className={`h-20 w-20 transition-all duration-500 ${isPlaying ? 'text-blue-500/10 scale-90' : 'text-blue-500/30'}`} />
+                    <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-16 w-16 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center backdrop-blur-xl hover:scale-110 transition-transform">
+                        {isPlaying ? <Pause className="h-6 w-6 text-blue-400" /> : <Play className="h-6 w-6 text-blue-400 ml-1" />}
+                      </div>
+                    </button>
+                    {/* Timestamp Overlays for Interactive Content */}
+                    <AnimatePresence>
+                      {quizzes.some(q => q.timestamp === currentTime) && (
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-xl border border-purple-500/30 p-4 rounded-2xl z-20">
+                          <div className="flex items-center gap-2 text-purple-400 mb-2">
+                            <Sparkles className="h-4 w-4" />
+                            <span className="text-xs font-bold uppercase tracking-widest">Interactive Quiz</span>
+                          </div>
+                          <p className="text-sm font-semibold text-white mb-3">{quizzes.find(q => q.timestamp === currentTime)?.question}</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {quizzes.find(q => q.timestamp === currentTime)?.options.map((opt: any, i: number) => (
+                              <button key={i} onClick={() => handleQuizAnswer(quizzes.find(q => q.timestamp === currentTime)._id, i)} className="text-xs py-2 px-3 rounded-xl bg-white/5 hover:bg-purple-500/20 border border-white/5 hover:border-purple-500/30 text-slate-300 transition-all text-left">
+                                {opt.text}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : doc.type === "image" ? (
+                  <ImageIcon className="h-20 w-20 text-teal-500/30" />
+                ) : (
+                  <FileText className="h-20 w-20 text-slate-500/30" />
+                )}
 
-            <div className="flex flex-col items-center gap-3 text-muted-foreground/40 text-center px-8">
-              {doc.type === "video" ? (
-                <Video className="h-16 w-16" />
-              ) : doc.type === "image" ? (
-                <ImageIcon className="h-16 w-16" />
-              ) : (
-                <FileText className="h-16 w-16" />
-              )}
-              <div>
-                <p className="text-sm">
-                  {doc.type === "video"
-                    ? "Video playback area"
-                    : doc.type === "image"
-                      ? "Image preview area"
-                      : "Document preview area"}
-                </p>
-                <p className="text-xs text-muted-foreground/30 mt-1 uppercase tracking-widest font-black">
-                  Watermarked &middot; {doc.metadata?.isEncrypted ? 'AES-256 E2EE' : 'Standard Protection'}
-                </p>
-              </div>
-
-              {!isVerified ? (
-                <button
-                  onClick={handleStartScan}
-                  className="mt-4 flex items-center gap-2 rounded-full bg-primary/10 border border-primary/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/20 transition-all group/btn"
-                >
-                  <Scan className="h-3 w-3 group-hover/btn:rotate-90 transition-transform" />
-                  Verify Integrity
-                </button>
-              ) : (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="mt-4 flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-500"
-                >
-                  <CheckCircle2 className="h-3 w-3" />
-                  Cryptographically Verified
-                </motion.div>
-              )}
-            </div>
-
-            {/* Corner Accents */}
-            <div className="absolute top-4 left-4 h-4 w-4 border-t-2 border-l-2 border-primary/20" />
-            <div className="absolute top-4 right-4 h-4 w-4 border-t-2 border-r-2 border-primary/20" />
-            <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-primary/20" />
-            <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-primary/20" />
-          </GlassPanel>
-        </motion.div>
-
-        {/* Metadata */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-24 grid gap-4 md:grid-cols-2"
-        >
-          <GlassPanel className="p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
-              <Info className="h-3.5 w-3.5" />
-              Details
-            </h2>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Type</span>
-                <span className="capitalize text-foreground">{doc.type}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Size</span>
-                <span className="text-foreground">{formatBytes(doc.size)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Uploaded</span>
-                <span className="text-foreground">
-                  {new Date(doc.uploadedAt).toLocaleDateString()}
-                </span>
-              </div>
-              {doc.expiresAt && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="h-3 w-3" /> Expires
-                  </span>
-                  <span className="text-foreground">
-                    {new Date(doc.expiresAt).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-              {doc.metadata &&
-                Object.entries(doc.metadata).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="capitalize text-muted-foreground">{key}</span>
-                    <span className="text-foreground">{String(value)}</span>
-                  </div>
-                ))}
-            </div>
-          </GlassPanel>
-
-          <GlassPanel className="p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
-              <Shield className="h-3.5 w-3.5" />
-              Access Policy
-            </h2>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Download</span>
-                <span className={doc.downloadAllowed ? "text-primary" : "text-destructive/70"}>
-                  {doc.downloadAllowed ? "Allowed" : "Restricted"}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Roles</span>
-                <div className="flex gap-1">
-                  {doc.accessRoles.map((role) => (
-                    <span
-                      key={role}
-                      className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
-                    >
-                      {role}
+                {/* AI Overlay Badge */}
+                {doc.metadata?.aiCategory && (
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border border-blue-500/20 backdrop-blur-xl">
+                      {doc.metadata.aiCategory}
                     </span>
-                  ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Player Controls (if video) */}
+              {doc.type === "video" && (
+                <div className="bg-slate-950/80 p-4 border-t border-white/5 flex items-center gap-4">
+                  <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
+                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  </button>
+                  <span className="text-xs font-mono text-slate-400">{formatTime(currentTime)}</span>
+                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden relative cursor-pointer">
+                    <motion.div className="absolute top-0 left-0 h-full bg-blue-500" style={{ width: `${(currentTime / 300) * 100}%` }} />
+                    {/* Markers */}
+                    {[...comments, ...quizzes, ...polls].map((item: any, i: number) => item.timestamp ? (
+                      <div key={i} className="absolute top-0 h-full w-1 bg-white/50" style={{ left: `${(item.timestamp / 300) * 100}%` }} title="Interactive Event" />
+                    ) : null)}
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">05:00</span>
                 </div>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">DRM</span>
-                <span className="text-primary">Active</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Watermark</span>
-                <span className="text-primary">Enabled</span>
-              </div>
-            </div>
-          </GlassPanel>
-        </motion.div>
-        {/* Digital Heritage Lifecycle */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-24"
-        >
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Shield className="h-3 w-3 text-primary" />
-              Digital Heritage & Provenance
-            </h2>
-            <span className="text-[10px] text-primary/60 border border-primary/20 bg-primary/5 rounded-full px-2 py-0.5">Immutable Record</span>
-          </div>
+              )}
+            </GlassPanel>
 
-          <GlassPanel className="p-8">
-            <div className="relative space-y-10 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-16px)] before:w-[1px] before:bg-gradient-to-b before:from-primary/50 before:via-primary/20 before:to-transparent">
-              <TimelineStep
-                icon={Plus}
-                title="Data Ingestion"
-                time={new Date(doc.uploadedAt).toLocaleString()}
-                desc="Initial raw content ingestion via project entrypoint. Original bits stored in zero-trust isolation."
-                status="Complete"
-              />
-              <TimelineStep
-                icon={Lock}
-                title="Cryptographic Sealing"
-                time={new Date(new Date(doc.uploadedAt).getTime() + 120000).toLocaleString()}
-                desc="AES-256-GCM symmetric encryption applied. Root hash (SHA3-512) stored in audit ledger."
-                status="Verified"
-              />
-              <TimelineStep
-                icon={Sparkles}
-                title="Semantic Indexing"
-                time={new Date(new Date(doc.uploadedAt).getTime() + 450000).toLocaleString()}
-                desc="Vector embedding generated. Document projected into high-dimensional semantic space for AI recall."
-                status="Active"
-              />
-              <TimelineStep
-                icon={Shield}
-                title="Access Policy Synthesis"
-                time="Real-time"
-                desc="Dynamic access roles validated (Admin, Editor, Viewer). DRM watermark active for current session."
-                status="Monitoring"
-                isCurrent
-              />
-            </div>
-          </GlassPanel>
-        </motion.div>
-      </div>
-    </div>
-  )
-}
+            {/* AI Summary Section */}
+            {doc.metadata?.aiSummary && (
+              <GlassPanel className="p-6 border-l-4 border-l-blue-500">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-blue-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400">AI Summary</h3>
+                </div>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  {doc.metadata.aiSummary}
+                </p>
+                {doc.metadata.tags && doc.metadata.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {doc.metadata.tags.map((tag: string) => (
+                      <span key={tag} className="text-[10px] text-slate-500 bg-white/5 px-2 py-1 rounded-lg">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </GlassPanel>
+            )}
+          </motion.div>
 
-function TimelineStep({ icon: Icon, title, time, desc, status, isCurrent }: any) {
-  return (
-    <div className="relative pl-10 group">
-      <div className={`absolute left-0 top-1 h-[22px] w-[22px] rounded-full border-2 flex items-center justify-center bg-background z-10 transition-all duration-500 ${isCurrent ? 'border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]' : 'border-primary/30 group-hover:border-primary/60'}`}>
-        <Icon className={`h-2.5 w-2.5 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className={`text-xs font-bold uppercase tracking-tight ${isCurrent ? 'text-primary' : 'text-foreground/80'}`}>{title}</h3>
-          <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${isCurrent ? 'bg-primary/20 text-primary' : 'bg-white/5 text-muted-foreground'}`}>{status}</span>
+          {/* Sidebar / Interactive Overlays */}
+          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 h-[calc(100vh-140px)] flex flex-col">
+            {/* Tabs */}
+            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/5 shrink-0">
+              {[
+                { id: "info", icon: Info, label: "Info" },
+                { id: "comments", icon: MessageSquare, label: "Comments" },
+                { id: "quizzes", icon: HelpCircle, label: "Quizzes", badge: quizzes.length },
+                { id: "polls", icon: BarChart2, label: "Polls", badge: polls.length },
+              ].map((tab) => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all relative ${activeTab === tab.id ? "bg-white/10 text-white" : "text-slate-500 hover:bg-white/5 hover:text-slate-300"}`}>
+                  <tab.icon className="h-4 w-4 mb-1" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                  {tab.badge ? <span className="absolute top-1 right-2 bg-blue-500 text-white text-[8px] font-bold px-1.5 rounded-full">{tab.badge}</span> : null}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <GlassPanel className="flex-1 p-0 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
+                <AnimatePresence mode="wait">
+                  {/* INFO TAB */}
+                  {activeTab === "info" && (
+                    <motion.div key="info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Document Providence</h4>
+                        <div className="space-y-3 bg-black/20 p-4 rounded-2xl border border-white/5">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500">Uploaded</span>
+                            <span className="text-slate-300">{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500">By</span>
+                            <span className="text-slate-300">{doc.uploadedBy}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500">Size</span>
+                            <span className="text-slate-300">{formatBytes(doc.size)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Access Control</h4>
+                        <div className="space-y-3 bg-black/20 p-4 rounded-2xl border border-white/5">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500">Roles</span>
+                            <div className="flex gap-1">
+                              {doc.accessRoles.map((r) => <span key={r} className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20 text-blue-400 bg-blue-500/10">{r}</span>)}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500">Download</span>
+                            <span className={doc.downloadAllowed ? "text-emerald-400" : "text-rose-400"}>{doc.downloadAllowed ? "Enabled" : "Restricted"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* COMMENTS TAB */}
+                  {activeTab === "comments" && (
+                    <motion.div key="comments" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                      {comments.length === 0 ? (
+                        <div className="text-center py-10">
+                          <MessageCircle className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+                          <p className="text-sm text-slate-500">No comments yet</p>
+                        </div>
+                      ) : (
+                        comments.map((comment: any, i: number) => (
+                          <div key={i} className="bg-white/5 border border-white/5 p-3 rounded-2xl">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-white">{comment.user?.name || "User"}</span>
+                              {comment.timestamp ? (
+                                <button onClick={() => setCurrentTime(comment.timestamp)} className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 hover:bg-blue-500/20 transition-colors">
+                                  <Clock className="h-3 w-3" /> {formatTime(comment.timestamp)}
+                                </button>
+                              ) : <span className="text-[10px] text-slate-500">General</span>}
+                            </div>
+                            <p className="text-sm text-slate-300">{comment.text}</p>
+                          </div>
+                        ))
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* QUIZZES TAB */}
+                  {activeTab === "quizzes" && (
+                    <motion.div key="quizzes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                      {quizzes.length === 0 ? (
+                        <div className="text-center py-10">
+                          <HelpCircle className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+                          <p className="text-sm text-slate-500">No quizzes attached</p>
+                        </div>
+                      ) : (
+                        quizzes.map((quiz: any, i: number) => {
+                          const hasAnswered = quiz.responses?.some((r: any) => r.user === user?.id)
+                          return (
+                            <div key={i} className={`p-4 rounded-2xl border ${hasAnswered ? "bg-emerald-500/5 border-emerald-500/20" : "bg-purple-500/5 border-purple-500/20"}`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${hasAnswered ? "text-emerald-400" : "text-purple-400"}`}>Quiz {i+1}</span>
+                                <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">{formatTime(quiz.timestamp)}</span>
+                              </div>
+                              <p className="text-sm text-white font-medium mb-3">{quiz.question}</p>
+                              <div className="space-y-2">
+                                {quiz.options.map((opt: any, optIdx: number) => {
+                                  const ans = quiz.responses?.find((r: any) => r.user === user?.id)
+                                  const isSelected = ans?.selectedOption === optIdx
+                                  return (
+                                    <button key={optIdx} disabled={hasAnswered} onClick={() => handleQuizAnswer(quiz._id, optIdx)} className={`w-full text-left text-xs px-3 py-2 rounded-xl border transition-all ${
+                                      hasAnswered ? (isSelected ? (ans.isCorrect ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-200" : "bg-rose-500/20 border-rose-500/30 text-rose-200") : "bg-white/5 border-white/5 text-slate-500") 
+                                      : "bg-white/5 hover:bg-white/10 border-white/10 text-slate-300"
+                                    }`}>
+                                      {opt.text}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* POLLS TAB */}
+                  {activeTab === "polls" && (
+                    <motion.div key="polls" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                      {polls.length === 0 ? (
+                        <div className="text-center py-10">
+                          <BarChart2 className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+                          <p className="text-sm text-slate-500">No active polls</p>
+                        </div>
+                      ) : (
+                        polls.map((poll: any, i: number) => {
+                          const totalVotes = poll.options.reduce((sum: number, o: any) => sum + o.votes, 0)
+                          const hasVoted = poll.voters?.includes(user?.id)
+                          return (
+                            <div key={i} className="bg-cyan-500/5 border border-cyan-500/20 p-4 rounded-2xl">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">Live Poll</span>
+                                {poll.timestamp > 0 && <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded">{formatTime(poll.timestamp)}</span>}
+                              </div>
+                              <p className="text-sm text-white font-medium mb-3">{poll.question}</p>
+                              <div className="space-y-2">
+                                {poll.options.map((opt: any, optIdx: number) => {
+                                  const pct = totalVotes > 0 ? (opt.votes / totalVotes) * 100 : 0
+                                  return (
+                                    <button key={optIdx} disabled={hasVoted} onClick={() => handlePollVote(poll._id, optIdx)} className="w-full relative overflow-hidden rounded-xl border border-white/10 bg-white/5 h-10 transition-all hover:border-cyan-500/30">
+                                      {hasVoted && <div className="absolute top-0 left-0 h-full bg-cyan-500/20 transition-all duration-1000" style={{ width: `${pct}%` }} />}
+                                      <div className="absolute inset-0 flex items-center justify-between px-3 text-xs z-10">
+                                        <span className="text-white">{opt.text}</span>
+                                        {hasVoted && <span className="text-cyan-300 font-mono">{pct.toFixed(0)}%</span>}
+                                      </div>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Input Footer for Comments */}
+              <AnimatePresence>
+                {activeTab === "comments" && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="p-4 border-t border-white/5 bg-black/40">
+                    <form onSubmit={handleAddComment} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={`Add comment at ${formatTime(currentTime)}...`} className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500/40" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-400 bg-blue-500/10 px-1.5 rounded font-mono">{formatTime(currentTime)}</span>
+                      </div>
+                      <button type="submit" disabled={!newComment.trim()} className="bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-xl px-4 flex items-center justify-center hover:bg-blue-500/30 transition-colors disabled:opacity-50">
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </GlassPanel>
+          </motion.div>
         </div>
-        <p className="text-[10px] text-muted-foreground/60 mb-2 font-mono">{time}</p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed italic border-l-2 border-primary/5 pl-3 py-1 bg-white/5 rounded-r-lg group-hover:bg-primary/5 transition-colors">{desc}</p>
       </div>
     </div>
   )

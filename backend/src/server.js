@@ -57,8 +57,8 @@ app.use((req, res, next) => {
 
 // 6. Secure Routes
 app.use("/api/auth", require("./routes/auth.routes"));
-app.use("/api/content", require("./routes/content.routes")); // Secure Content Distribution
-app.use("/api/monitoring", require("./routes/monitoring.routes")); // Live Security Trace
+app.use("/api/content", require("./routes/content.routes"));
+app.use("/api/monitoring", require("./routes/monitoring.routes"));
 
 // Existing App Routes
 app.use("/api/users", require("./routes/user.routes"));
@@ -71,6 +71,13 @@ app.use("/api/activities", require("./routes/activity.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/search", require("./routes/search.routes"));
 app.use("/api/file-management", require("./routes/fileManagement.routes"));
+
+// Advanced Platform Features
+app.use("/api/ai", require("./routes/ai.routes"));
+app.use("/api/feed", require("./routes/feed.routes"));
+app.use("/api/clips", require("./routes/clip.routes"));
+app.use("/api/distribution", require("./routes/distribution.routes"));
+app.use("/api/interactions", require("./routes/interaction.routes"));
 
 // 7. Security: Remove direct access to /uploads
 // Content must be served via /api/content/stream/:id with signed URL verification

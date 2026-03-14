@@ -65,6 +65,18 @@ exports.uploadModel = async (req, res) => {
     });
 
     res.json(model);
+
+    // Background AI processing (non-blocking)
+    try {
+      const aiService = require("../services/ai.service");
+      aiService.processContent(model._id).then(result => {
+        console.log(`[AI] Content ${model._id} processed:`, result.tags);
+      }).catch(err => {
+        console.error(`[AI] Processing failed for ${model._id}:`, err.message);
+      });
+    } catch (aiErr) {
+      console.error("[AI] Service unavailable:", aiErr.message);
+    }
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ message: "Upload failed" });

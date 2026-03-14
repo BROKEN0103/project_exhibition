@@ -5,7 +5,10 @@ const requestIp = require('request-ip');
 
 // AES-256-CBC Encryption
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = Buffer.from(process.env.FILE_ENCRYPTION_KEY || 'default_secret_key_32_characters_!!', 'utf8');
+const ENCRYPTION_KEY = Buffer.from(
+  (process.env.FILE_ENCRYPTION_KEY || 'default_secret_key_32_characters').padEnd(32, '0').substring(0, 32), 
+  'utf8'
+);
 
 /**
  * Encrypt a buffer using AES-256-CBC

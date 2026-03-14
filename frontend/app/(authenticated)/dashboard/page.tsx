@@ -7,8 +7,6 @@ import { useAppStore } from "@/stores/app-store"
 import Link from "next/link"
 import { useState, useEffect, useMemo } from "react"
 import { TiltCard } from "@/components/premium/TiltCard"
-import { SecurityTracePanel } from "@/components/premium/SecurityTracePanel"
-import { NetworkTopology3D } from "@/components/premium/NetworkTopology3D"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -107,15 +105,7 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Dynamic Visualization Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          <motion.div variants={itemVariants} className="lg:col-span-2">
-            <NetworkTopology3D />
-          </motion.div>
-          <motion.div variants={itemVariants} className="h-full min-h-[400px]">
-            <SecurityTracePanel />
-          </motion.div>
-        </div>
+
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

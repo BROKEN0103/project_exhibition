@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Shield } from "lucide-react"
 import { GlassPanel } from "@/components/ui/glass-panel"
+import { toast } from "sonner"
 import { AuthBackground } from "@/components/premium/AuthBackground"
 import { loginAction, verify2FAAction } from "@/app/auth/actions"
 
@@ -40,7 +41,7 @@ export default function LoginPage() {
           setRequires2FA(true)
           if (result.testOtp) {
             setOtp(result.testOtp)
-            // Just output it directly or prefill
+            toast.success(`OTP sent to email! (Test OTP: ${result.testOtp})`, { duration: 10000 })
           }
         } else if (result.redirect) {
           router.push(result.redirect)

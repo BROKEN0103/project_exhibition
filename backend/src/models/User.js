@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
 
   // Security & Authentication
   twoFactorSecret: String,
-  isTwoFactorEnabled: { type: Boolean, default: false },
+  isTwoFactorEnabled: { type: Boolean, default: true },
   otpSecret: String, // Temporary OTP for login
   otpExpires: Date,
   loginAttempts: { type: Number, default: 0 },
